@@ -4,6 +4,7 @@ VERSION=
 NO_NPM=
 CHANGED=
 DRY_RUN=
+TAG_ONLY=
 
 #
 # usage()
@@ -17,10 +18,11 @@ usage: vbump options
 This commits a version bump and tags it git, then published to npm.
 
 OPTIONS:
-   -v  [required] Version 
+   -v  [required] Version
+   -t  Tag only. Do not git commit.
    -h  Show this message
+   -p  Do not publish to npm.
    -d  Dry-run. No nothing but echo commands
-   -n  Do not publish to npm.
 EOF
 }
 
@@ -50,7 +52,7 @@ function run () {
   fi
 }
 
-while getopts "hv:n:d" OPTION; do
+while getopts "v:hpdt" OPTION; do
   case $OPTION in
     h)
       usage
@@ -60,7 +62,12 @@ while getopts "hv:n:d" OPTION; do
       echo "-d: Executing dry-run..."
       DRY_RUN=1
       ;;
-    n)
+    t)
+      echo "-t: Skipping 'git commit'"
+      TAG_ONLY=1
+      ;;
+    p)
+      echo "-p: Skipping 'npm publish'"
       NO_NPM=1
       ;;
     v)
@@ -82,21 +89,26 @@ fi
 # Check git remote(s)
 checkgit
 
-# 
-# # Run git commands
-run "git add ."
-run "git commit -m '[dist] Version bump. $VERSION'"
-run "git push origin master"
+#
+# Run git commit only if `-t` is not set
+#
+if [ -z $TAG_ONLY ]; then
+  run "git add ."
+  run "git commit -m '[dist] Version bump. $VERSION'"
+  run "git push origin master"
+fi
+
+#
+# Always tag since we are version bumping.
+#
 run "git tag -a 'v$VERSION' -m 'Version $VERSION'"
 run "git push --tags"
 
-# Check for a package.json 
-if [ ! -f 'package.json' ]; then
-  echo "No package.json file. Skipping 'npm publish'"
-else   
-  if [ -z $NO_NPM ]; then
+# Check for a package.json
+if [ -z $NO_NPM ]; then
+  if [ ! -f 'package.json' ]; then
+    echo "No package.json file. Skipping 'npm publish'"
+  else
     run "npm publish"
-  else 
-    echo "-n: Skipping npm publish"
   fi
 fi
