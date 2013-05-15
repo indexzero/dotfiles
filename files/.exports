@@ -1,0 +1,25 @@
+#
+# Some sane exports
+#
+
+#
+# MacPorts Installer addition on 2011-12-01_at_23:41:50: adding an appropriate PATH variable for use with MacPorts.
+#
+export PATH=/opt/local/bin:/opt/local/sbin:~/.local/bin:$PATH
+
+#
+# Finished adapting your PATH environment variable for use with MacPorts.
+#
+export PATH=/Users/Charlie/.local/bin:$PATH
+
+#
+# Export the local .scripts dir
+#
+export PATH=/Users/charlie/.scripts:$PATH
+
+#
+# Set jitsu env variables
+#
+if [ -z "$JITSU_ENV" ]; then
+  export JITSU_ENV="production"
+fi

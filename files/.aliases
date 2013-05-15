@@ -1,0 +1,20 @@
+#
+# Some aliases
+#
+alias nodep='ps axl | grep node'
+alias sourcep='source ~/.profile'
+
+# a friendlier delete on the command line
+alias emptytrash="find $HOME/.Trash -not -path $HOME/.Trash -exec rm -rf {} \; 2>/dev/null"
+
+# git
+alias gaa="git add ."
+alias gci="git commit"
+alias gap="git add -p"
+alias gst="git status"
+alias gti="git"
+
+# make
+alias maek="make"
+alias meak="make"
+alias meak="make"
