@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 
+if (typeof process.argv[2] !== 'string') {
+  console.log('Usage: pkgver [file]');
+  process.exit(1);
+}
+
 console.log(
   require(
     require('path').resolve(process.argv[2])
