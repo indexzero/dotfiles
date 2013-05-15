@@ -1,0 +1,134 @@
+#!/bin/bash
+
+#
+# identify json will output a JSON literal
+#
+[ ! -z $1 ] && JSON=true
+
+#
+# Used and modified with Attribution under WTFPL: Joe Linoff
+# http://joelinoff.com/blog/?p=404
+#
+# Determine the current linux or solaris platform and output a unique
+# identifier string. Includes cygwin support.
+#
+# It is useful for creating directory trees on network shared volumes
+# that store data for different OS's.
+#
+# Example:
+#    % export PATH=/tools/`~/bin/platform.sh`/bin:"${PATH}"
+#
+# The format of the output is:
+#   <plat>-<dist>-<ver>-<arch>
+#   ^      ^      ^     ^
+#   |      |      |     +----- architecture: x86_64, i86pc, etc.
+#   |      |      +----------- version: 5.5, 4.7
+#   |      +------------------ distribution: centos, rhel, nexentaos
+#   +------------------------- platform: linux, sunos
+#
+
+# ================================================================
+# Trim a string, remove internal spaces, convert to lower case.
+# ================================================================
+function display-identity {
+  if [ ! -z $JSON ]; then
+    echo "{ \"plat\": \"$1\", \"dist\": \"$2\", \"ver\": \"$3\", \"arch\": \"$4\" }"
+  else
+    echo "$1-$2-$3-$4"
+  fi
+}
+ 
+# ================================================================
+# Trim a string, remove internal spaces, convert to lower case.
+# ================================================================
+function get-platform-trim {
+    local s=$(echo "$1" | tr -d '[ \t]' | tr 'A-Z' 'a-z')
+    echo $s
+}
+
+# ================================================================
+# Get the platform root name.
+# ================================================================
+function get-platform-root
+{
+    if which uname >/dev/null 2>&1 ; then
+        # Greg Moeller reported that the original code didn't
+        # work because the -o option is not available on solaris.
+        # I modified the script to correctly identify that
+        # case and recover by using the -s option.
+        if uname -o >/dev/null 2>&1 ; then
+            # Linux distro
+            uname -o | tr 'A-Z' 'a-z'
+        elif uname -s >/dev/null 2>&1 ; then
+            # Solaris variant
+            uname -s | tr 'A-Z' 'a-z'
+        else
+            echo "unkown"
+        fi
+    else
+        echo "unkown"
+    fi
+}
+
+# ================================================================
+# Get the platform identifier.
+# ================================================================
+function get-platform
+{
+    plat=$(get-platform-root)
+    case "$plat" in
+        "gnu/linux")
+            d=$(get-platform-trim "$(lsb_release -i)" | awk -F: '{print $2;}')
+            r=$(get-platform-trim "$(lsb_release -r)" | awk -F: '{print $2;}')
+            m=$(get-platform-trim "$(uname -m)")
+            if [[ "$d" == "redhatenterprise"* ]] ; then
+                # Need a little help for Red Hat because
+                # they don't make the minor version obvious.
+                d="rhel_${d:16}"  # keep the tail (e.g., es or client)
+                x=$(get-platform-trim "$(lsb_release -c)" | \
+                    awk -F: '{print $2;}' | \
+                    sed -e 's/[^0-9]//g')
+                r="$r.$x"
+            fi
+            display-identity "linux" $d $r $m
+            ;;
+        "cygwin")
+            x=$(get-platform-trim "$(uname)")
+            display-identity "linux" $x
+            ;;
+        "solaris"|"sunos")
+            if [ ! -z `which pkgin` ]; then
+              d="smartos"
+            else
+              d=$(get-platform-trim "$(uname -v)")
+            fi
+
+            r=$(get-platform-trim "$(uname -r)")
+            m="$(get-platform-trim "$(uname -m)")_`isainfo -b`"
+            display-identity "sunos" $d $r $m
+            ;;
+        "darwin")
+            d="unk"
+            r="unk"
+            m=$(get-platform-trim "$(uname -m)")
+
+            if [ ! -z `which sw_vers` ]; then
+              d=$(get-platform-trim "$(sw_vers -productName)")
+              r="`sw_vers -productVersion`_`sw_vers -buildVersion`"
+            fi
+            
+            display-identity "darwin" $d $r $m
+            ;;
+        "unknown")
+            display-identity "unk" "unk" "unk" "unk"
+            ;;
+        *)
+            display-identity $plat "unk" "unk" "unk"
+            ;;
+    esac
+}
+
+# ================================================================
+# main
+# ================================================================
+get-platform
