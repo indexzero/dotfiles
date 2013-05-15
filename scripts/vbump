@@ -93,22 +93,22 @@ checkgit
 # Run git commit only if `-t` is not set
 #
 if [ -z $TAG_ONLY ]; then
-  run "git add ."
-  run "git commit -m '[dist] Version bump. $VERSION'"
-  run "git push origin master"
+  run git "add ."
+  run git commit -m "[dist] Version bump. $VERSION"
+  run git push origin master
 fi
 
 #
 # Always tag since we are version bumping.
 #
-run "git tag -a 'v$VERSION' -m 'Version $VERSION'"
-run "git push --tags"
+run git tag -a "v$VERSION" -m "Version $VERSION"
+run git push --tags
 
 # Check for a package.json
 if [ -z $NO_NPM ]; then
   if [ ! -f 'package.json' ]; then
     echo "No package.json file. Skipping 'npm publish'"
   else
-    run "npm publish"
+    run npm publish
   fi
 fi
