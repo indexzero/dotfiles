@@ -1,0 +1,102 @@
+#!/bin/bash
+
+VERSION=
+NO_NPM=
+CHANGED=
+DRY_RUN=
+
+#
+# usage()
+# Prints the usage for this script
+#
+usage()
+{
+cat << EOF
+usage: vbump options
+
+This commits a version bump and tags it git, then published to npm.
+
+OPTIONS:
+   -v  [required] Version 
+   -h  Show this message
+   -d  Dry-run. No nothing but echo commands
+   -n  Do not publish to npm.
+EOF
+}
+
+#
+# checkgit()
+# Ensures everything is up-to-date
+#
+checkgit() {
+  echo "Checking git for remote updates"
+  git pull --dry-run | grep -q -v 'Already up-to-date.' && CHANGED=1
+
+  if [ ! -z $CHANGED ]; then
+    echo "You need to pull from the remote before continuing"
+    echo "Run 'git pull origin master'"
+    exit 1
+  fi
+}
+
+#
+# run(@)
+# Runs `cmd` unless -d (i.e. DRY_RUN) is set.
+#
+function run () {
+  echo "$@"
+  if [ -z $DRY_RUN ]; then
+    "$@"
+  fi
+}
+
+while getopts "hv:n:d" OPTION; do
+  case $OPTION in
+    h)
+      usage
+      exit
+      ;;
+    d)
+      echo "-d: Executing dry-run..."
+      DRY_RUN=1
+      ;;
+    n)
+      NO_NPM=1
+      ;;
+    v)
+      VERSION=$OPTARG
+      ;;
+    \?)
+      usage
+      exit
+      ;;
+  esac
+done
+
+if [ -z $VERSION ]; then
+  echo "No version specified. Use -v VERSION"
+  usage
+  exit
+fi
+
+# Check git remote(s)
+checkgit
+
+# 
+# # Run git commands
+run "git add ."
+run "git commit -m '[dist] Version bump. $VERSION'"
+run "git push origin master"
+run "git tag -a 'v$VERSION' -m 'Version $VERSION'"
+run "git push --tags"
+
+# Check for a package.json 
+if [ ! -f 'package.json' ]; then
+  echo "No package.json file. Skipping 'npm publish'"
+else   
+  if [ -z $NO_NPM ]; then
+    run "npm publish"
+  else 
+    echo "-n: Skipping npm publish"
+  fi
+fi

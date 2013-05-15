@@ -1,0 +1,29 @@
+#!/bin/bash
+
+ROOT=$1
+
+if [ ! -d $ROOT ]; then
+  echo "Usage lsr [dir]"
+  exit 1
+fi
+
+if [ ! -z $2 ]; then
+  RUN=$2
+fi
+
+function lsr () {
+  for FILE in `ls $1`; do
+    if [ -d "$1/$FILE" ]; then
+      lsr "$1/$FILE"
+    elif [ -f "$1/$FILE" ]; then
+      if [ ! -z $RUN ]; then
+        echo "$RUN $1/$FILE"        
+        `$RUN "$1/$FILE"`
+      else
+        echo "$1/$FILE"
+      fi
+    fi
+  done
+}
+
+lsr $ROOT
