@@ -5,6 +5,7 @@ NO_NPM=
 CHANGED=
 DRY_RUN=
 TAG_ONLY=
+COMMIT_MSG=
 
 #
 # usage()
@@ -18,11 +19,12 @@ usage: vbump options
 This commits a version bump and tags it git, then published to npm.
 
 OPTIONS:
-   -v  [required] Version
+   -v  [required] Target version to bump.
    -t  Tag only. Do not git commit.
-   -h  Show this message
+   -h  Show this message.
    -p  Do not publish to npm.
-   -d  Dry-run. No nothing but echo commands
+   -m  Commit message you wish to use.
+   -d  Dry-run. No nothing but echo commands.
 EOF
 }
 
@@ -52,7 +54,7 @@ function run () {
   fi
 }
 
-while getopts "v:hpdt" OPTION; do
+while getopts "v:m:hpdt" OPTION; do
   case $OPTION in
     h)
       usage
@@ -73,6 +75,9 @@ while getopts "v:hpdt" OPTION; do
     v)
       VERSION=$OPTARG
       ;;
+    m)
+      COMMIT_MSG=$OPTARG
+      ;;
     \?)
       usage
       exit
@@ -80,10 +85,21 @@ while getopts "v:hpdt" OPTION; do
   esac
 done
 
+#
+# If there is no version then exit; it is required.
+#
 if [ -z $VERSION ]; then
   echo "No version specified. Use -v VERSION"
   usage
   exit
+fi
+
+#
+# If no custom message was supplied then use
+# the default message
+#
+if [ -z "$COMMIT_MSG" ]; then
+  COMMIT_MSG="[dist] Version bump. $VERSION"
 fi
 
 # Check git remote(s)
@@ -93,8 +109,8 @@ checkgit
 # Run git commit only if `-t` is not set
 #
 if [ -z $TAG_ONLY ]; then
-  run git "add ."
-  run git commit -m "[dist] Version bump. $VERSION"
+  run git add .
+  run git commit -m "$COMMIT_MSG"
   run git push origin master
 fi
 
