@@ -50,7 +50,7 @@ checkgit() {
 source $HOME/.functions
 set_colors
 
-while getopts "m:hpdt" OPTION; do
+while getopts "v:m:hpdt" OPTION; do
   case $OPTION in
     h)
       usage
@@ -70,6 +70,9 @@ while getopts "m:hpdt" OPTION; do
       ;;
     m)
       COMMIT_MSG=$OPTARG
+      ;;
+    v)
+      VERSION=$OPTARG
       ;;
     \?)
       usage
