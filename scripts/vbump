@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# TODO: Use the parsed package.json script and check the git tags against it.
+#[ -f "package.json" ] && VERSION=`pkgver package.json` || VERSION=
+
 VERSION=
 NO_NPM=
 CHANGED=
@@ -43,37 +46,27 @@ checkgit() {
   fi
 }
 
-#
-# run(@)
-# Runs `cmd` unless -d (i.e. DRY_RUN) is set.
-#
-function run () {
-  echo "$@"
-  if [ -z $DRY_RUN ]; then
-    "$@"
-  fi
-}
+# Setup colors
+source $HOME/.functions
+set_colors
 
-while getopts "v:m:hpdt" OPTION; do
+while getopts "m:hpdt" OPTION; do
   case $OPTION in
     h)
       usage
       exit
       ;;
     d)
-      echo "-d: Executing dry-run..."
+      echoc "-d: Executing dry-run..." "YELLOW"
       DRY_RUN=1
       ;;
     t)
-      echo "-t: Skipping 'git commit'"
+      echoc "-t: Skipping 'git commit'" "YELLOW"
       TAG_ONLY=1
       ;;
     p)
-      echo "-p: Skipping 'npm publish'"
+      echoc "-p: Skipping 'npm publish'" "YELLOW"
       NO_NPM=1
-      ;;
-    v)
-      VERSION=$OPTARG
       ;;
     m)
       COMMIT_MSG=$OPTARG
@@ -89,7 +82,7 @@ done
 # If there is no version then exit; it is required.
 #
 if [ -z $VERSION ]; then
-  echo "No version specified. Use -v VERSION"
+  echoc "No version specified. Use -v VERSION" "YELLOW"
   usage
   exit
 fi
@@ -123,7 +116,7 @@ run git push --tags
 # Check for a package.json
 if [ -z $NO_NPM ]; then
   if [ ! -f 'package.json' ]; then
-    echo "No package.json file. Skipping 'npm publish'"
+    echoc "No package.json file. Skipping 'npm publish'" "YELLOW"
   else
     run npm publish
   fi

@@ -2,20 +2,21 @@
 # Some sane exports
 #
 
+if [[ $COLORTERM = gnome-* && $TERM = xterm ]] && infocmp gnome-256color >/dev/null 2>&1; then
+  export TERM=gnome-256color
+elif infocmp xterm-256color >/dev/null 2>&1; then 
+  export TERM=xterm-256color
+fi
+
 #
 # MacPorts Installer addition on 2011-12-01_at_23:41:50: adding an appropriate PATH variable for use with MacPorts.
 #
-export PATH=/opt/local/bin:/opt/local/sbin:~/.local/bin:$PATH
-
-#
-# Finished adapting your PATH environment variable for use with MacPorts.
-#
-export PATH=/Users/Charlie/.local/bin:$PATH
+export PATH=/opt/local/bin:/opt/local/sbin:$HOME/.local/bin:$PATH
 
 #
 # Export the local .scripts dir
 #
-export PATH=/Users/charlie/.scripts:$PATH
+export PATH=$HOME/.scripts:$PATH
 
 #
 # Set jitsu env variables
