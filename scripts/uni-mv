@@ -1,0 +1,39 @@
+#!/usr/bin/env node
+
+var fs = require('fs'),
+    path = require('path');
+    
+if (typeof process.argv[2] !== 'string') {
+  console.log('Usage: pkgver [file]');
+  process.exit(1);
+}
+
+var dir = path.resolve(process.argv[2]),
+    re = /\(([a-z]{2,3}\d{4})\)/i;
+
+function moveOne(file) {
+  var match,
+      rename;
+
+  if ((match = re.exec(file))) {
+    rename = path.join(dir, match[1] + ' - ' + path.basename(file).replace(match[0], ''));
+    fs.rename(file, rename, function (err) {
+      return err
+        ? console.dir(match[1] + ': ' + err.message)
+        : console.dir(match[1]);
+    })
+  }
+}
+
+//
+// Read the directory and then for each dir move it
+//
+fs.readdir(dir, function (err, files) {
+  if (err) {
+    console.log('Error: ' + err.message);
+    return process.exit(1);
+  }
+  
+  files = files.map(function (f) { return path.join(dir, f) });
+  files.forEach(moveOne);
+});
