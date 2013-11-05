@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+for DIR in `ls .`; do
+  echo "cd $DIR"
+  cd $DIR
+  
+  echo "$DIR git fetch"
+  git fetch
+  
+  echo "$DIR git pull origin master"
+  git pull origin master
+  
+  echo "cd ../"
+  cd ../ 
+done
