@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+TRANSCRIPT_DIR="$HOME/Documents/Colloquy Transcripts/irc.freenode.net"
+CHANNEL=$1
+SEARCH=$2
+
+if [ -z "$CHANNEL" ]; then
+  echo "usage: ircs [channel] [search]"
+  echo "Channel is required."
+elif [ -z "$SEARCH" ]; then
+  echo "usage: ircs [channel] [search]"
+  echo "Search is required."
+else
+  CHANNEL="#$CHANNEL"
+fi
+
+find "$TRANSCRIPT_DIR" -name "$CHANNEL*" | while read FILE; do
+  echo "Search $FILE"
+  echo ""
+  cat "$FILE" | grep $SEARCH
+done
