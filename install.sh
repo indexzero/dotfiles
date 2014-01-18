@@ -23,14 +23,16 @@ function move_files () {
     fi
   fi
 
-  for file in `ls -a $sdir | egrep "^\.\w|^\w"`; do
-    if [ -f "$tdir/$file" ]; then
-      cp -f "$tdir/$file" "$bdir/$file"
-    fi
+  for source in `find $sdir`; do
+    if [ -z $DRY_RUN ] && [ ! -d $source ]; then
+      file=${source##*/}
 
-    if [ -z $DRY_RUN ]; then
+      if [ -f "$tdir/$file" ]; then
+        cp -f "$tdir/$file" "$bdir/$file"
+      fi
+
       echo "Installing $1/$file"
-      cp -f "$sdir/$file" "$tdir/$file"
+      cp -f "$source" "$tdir/$file"
     fi
   done
 }
