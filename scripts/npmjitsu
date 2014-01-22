@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+echo "Setting npm registry to https://$1.registry.nodejitsu.com"
+npm config set registry "https://$1.registry.nodejitsu.com"
