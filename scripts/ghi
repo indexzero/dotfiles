@@ -24,11 +24,7 @@ if [ ! -d "$USER_DIR" ]; then
 fi
 
 if [ ! -d "$REPO_DIR" ]; then
-  echo "$REPO_DIR does not exist"
-  cd $USER_DIR
-  git clone "https://github.com/$GIT_USER/$GIT_REPO"
-else
-  echo "$REPO_DIR exists"
+  git clone "https://github.com/$GIT_USER/$GIT_REPO" "$REPO_DIR"
 fi
 
-cd $REPO_DIR
+cd "$REPO_DIR"

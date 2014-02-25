@@ -7,6 +7,9 @@ alias sourcep='source ~/.profile'
 # a friendlier delete on the command line
 alias emptytrash="find $HOME/.Trash -not -path $HOME/.Trash -exec rm -rf {} \; 2>/dev/null"
 
+# github
+alias gh=". ghi"
+
 # git
 alias gaa="git add ."
 alias gci="git commit"
