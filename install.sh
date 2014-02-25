@@ -32,6 +32,7 @@ function move_files () {
       fi
 
       echo "Installing $1/$file"
+      rm "$tdir/$file"
       cp -f "$source" "$tdir/$file"
     fi
   done
