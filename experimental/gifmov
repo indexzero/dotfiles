@@ -1,0 +1,12 @@
+#!/usr/bin/env node
+
+var path = require('path'),
+    spawn = require('spawn');
+
+var video = process.argv[2],
+    size  =  process.argv[3];
+
+if (!video || !size) {
+  console.error('usage: gifmov [video] [size]');
+  return process.exit(1)
+}
