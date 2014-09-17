@@ -1,17 +1,52 @@
 #!/usr/bin/env bash
 
 
-FULLNAME=$1
+FULLNAME="${@: -1}"
 
 IFS='/'
 read -a PARTS <<< "$FULLNAME"
 GIT_USER="${PARTS[0]}"
 GIT_REPO="${PARTS[1]}"
 
+#
+# usage()
+# Prints the usage for this script
+#
+usage()
+{
+cat << EOF
+usage: gh options user/repo
+
+Changes directory into ~/Git/user/repo cloning from Github if necessary
+
+OPTIONS:
+   -s  Clone over SSH
+   -h  Show this message.
+EOF
+}
+
+GIT_URL="https://github.com/$GIT_USER/$GIT_REPO"
+
+while getopts "hs" OPTION; do
+  case $OPTION in
+    h)
+      usage
+      exit
+      ;;
+    s)
+      GIT_URL="git@github.com:$GIT_USER/$GIT_REPO"
+      ;;
+    \?)
+      echo "$OPTION"
+      usage
+      exit
+      ;;
+  esac
+done
+
 if [ -z "$GIT_USER" ] || [ -z "$GIT_REPO" ]; then
-  echo "Invalid input $FULLNAME"
-  echo "usage: gh username/repo"
-  exit 1
+  usage
+  exit
 fi
 
 GIT_DIR="$HOME/Git"
@@ -24,7 +59,7 @@ if [ ! -d "$USER_DIR" ]; then
 fi
 
 if [ ! -d "$REPO_DIR" ]; then
-  git clone "https://github.com/$GIT_USER/$GIT_REPO" "$REPO_DIR"
+  git clone "$GIT_URL" "$REPO_DIR"
 fi
 
 cd "$REPO_DIR"
