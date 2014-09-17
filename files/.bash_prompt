@@ -2,7 +2,7 @@
 # Shamelessly copied from https://github.com/gf3/dotfiles
 
 # Set colors
-source $HOME/.functions
+source "$HOME/.functions"
 set_colors
 
 PS1="\[\033[G$ORANGE\]\$(parse_git_branch)\[$WHITE\]\$([[ -n \$(git branch 2> /dev/null) ]] && echo \" in \")\[$YELLOW\]\w\[$WHITE\] \$ \[$RESET\]"
