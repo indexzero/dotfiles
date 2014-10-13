@@ -9,5 +9,5 @@ if [ -z $REMOTE_USER ]; then
   exit 1
 fi
 
-echo "git remote add $REMOTE_USER http://github.com/$REPO/$REMOTE_USER"
-git remote add $REMOTE_USER "http://github.com/$REPO/$REMOTE_USER"
+echo "git remote add $REMOTE_USER git@github.com:$REMOTE_USER/$REPO"
+git remote add "$REMOTE_USER" "git@github.com:$REMOTE_USER/$REPO"
