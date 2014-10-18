@@ -68,3 +68,9 @@ function run () {
     "$@"
   fi
 }
+
+#
+# nev (@)
+# Evaluates the specified arguments to `node`
+#
+function nev() { node -pe "$@"; }
