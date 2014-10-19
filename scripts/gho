@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+if [ -z "$PWD" ]; then
+  PWD="`pwd`"
+fi
+
+BASE_DIR="`dirname $PWD`"
+GIT_REPO="`basename $PWD`"
+GIT_USER="`basename $BASE_DIR`"
+GIT_URL="https://github.com/$GIT_USER/$GIT_REPO/"
+
+echo "open \"$GIT_URL\""
+open "$GIT_URL"
