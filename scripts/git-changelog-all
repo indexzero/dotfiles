@@ -9,6 +9,11 @@ function tag_header () {
   echo -e "$HEAD";
 }
 
+PARENT_DIR="`dirname \"$PWD\"`"
+REPO_NAME="`basename \"$PWD\"`"
+ORG_NAME="`basename \"$PARENT_DIR\"`"
+URL="https://github.com/$ORG_NAME/$REPO_NAME/commit"
+
 LAST_TAG=
 for TAG in `git for-each-ref --format="%(tag)" --sort='*authordate' refs/tags | sed '1!G;h;$!d'`; do
   if [ -z "$LAST_TAG" ]; then
@@ -17,7 +22,7 @@ for TAG in `git for-each-ref --format="%(tag)" --sort='*authordate' refs/tags | 
   fi
 
   echo -e "$(tag_header $LAST_TAG)"
-  git --no-pager log --pretty="format:  * [%h] %s (\`%an\`)" "$TAG".."$LAST_TAG"
+  git --no-pager log --no-merges --pretty="format:  * [%h]($URL/%h) %s (\`%an\`)" "$TAG".."$LAST_TAG"
   echo ""
 
   LAST_TAG=$TAG
