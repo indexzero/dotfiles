@@ -4,14 +4,19 @@
 
 if [[ $COLORTERM = gnome-* && $TERM = xterm ]] && infocmp gnome-256color >/dev/null 2>&1; then
   export TERM=gnome-256color
-elif infocmp xterm-256color >/dev/null 2>&1; then 
+elif infocmp xterm-256color >/dev/null 2>&1; then
   export TERM=xterm-256color
 fi
 
 #
 # MacPorts Installer addition on 2011-12-01_at_23:41:50: adding an appropriate PATH variable for use with MacPorts.
 #
-export PATH=/opt/local/bin:/opt/local/sbin:$HOME/.local/bin:$PATH
+export PATH="/opt/local/bin:/opt/local/sbin:$HOME/.local/bin:$PATH"
+
+#
+# Make homebrew the priority for all executables before npm
+#
+export PATH="/usr/local/bin:/usr/local/sbin:~/bin:$PATH"
 
 #
 # Export the local .scripts dir
