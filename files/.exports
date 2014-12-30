@@ -11,12 +11,12 @@ fi
 #
 # MacPorts Installer addition on 2011-12-01_at_23:41:50: adding an appropriate PATH variable for use with MacPorts.
 #
-export PATH="/opt/local/bin:/opt/local/sbin:$HOME/.local/bin:$PATH"
+export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
 
 #
-# Make homebrew the priority for all executables before npm
+# Make npm then homebrew the priority for all executables before npm
 #
-export PATH="/usr/local/bin:/usr/local/sbin:~/bin:$PATH"
+export PATH="$HOME/.local/bin:/usr/local/bin:/usr/local/sbin:$HOME/bin:$PATH"
 
 #
 # Export the local .scripts dir
