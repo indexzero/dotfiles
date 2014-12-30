@@ -1,0 +1,27 @@
+#!/usr/bin/env node
+
+var fs = require('fs'),
+    path = require('path');
+
+var filename = path.join(process.cwd(), '.git', 'config');
+
+fs.readFile(filename, 'utf8', function (err, lines) {
+  if (err) {
+    console.log('hgit error: %s', err.message);
+    return process.exit(1);
+  }
+
+  var find = /\sgit\@github\.com\:/,
+      replace = ' https://github.com/';
+
+  lines = lines.split('\n').map(function (line) {
+    return line.replace(find, replace);
+  });
+
+  fs.writeFile(filename, lines.join('\n'), 'utf8', function (err) {
+    if (err) {
+      console.log('hgit error: %s', err.message);
+      return process.exit(1);
+    }
+  });
+});
