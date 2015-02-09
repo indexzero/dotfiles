@@ -15,4 +15,5 @@ if [ -z "$SERVER" ]; then
   exit 1
 fi
 
+echo "Sync \"$TARGET_DIR\" to \"$SERVER:$FULLNAME/$TARGET_DIR\""
 rsync -raP "$TARGET_DIR" "$SERVER:$FULLNAME/$TARGET_DIR"
