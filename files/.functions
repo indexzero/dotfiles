@@ -1,4 +1,35 @@
 #
+# Override the Git command
+# Source: https://github.com/IonicaBizau/git-stats#catching-the-git-commit-command
+#
+git() {
+  cmd=$1
+  shift
+  extra=""
+
+  quoted_args=""
+  whitespace="[[:space:]]"
+  for i in "$@"
+  do
+      quoted_args="$quoted_args \"$i\""
+  done
+
+  cmdToRun="`which git` "$cmd" $quoted_args"
+  cmdToRun=`echo $cmdToRun | sed -e 's/^ *//' -e 's/ *$//'`
+  bash -c "$cmdToRun"
+  if [ $? -eq 0 ]; then
+    # Commit stats
+    if [ "$cmd" == "commit" ]; then
+      commit_hash=`git rev-parse HEAD`
+      repo_url=`git config --get remote.origin.url`
+      commit_date=`git log -1 --format=%cd`
+      commit_data="\"{ \"date\": \"$commit_date\", \"url\": \"$repo_url\", \"hash\": \"$commit_hash\" }\""
+      git-stats --record "$commit_data"
+    fi
+  fi
+}
+
+#
 # Sets colors based on tput or other terminal coloring
 #
 function set_colors() {
@@ -31,11 +62,11 @@ function set_colors() {
 }
 
 function parse_git_dirty() {
-  [[ $(git status 2> /dev/null | tail -n1) != "nothing to commit, working directory clean" ]] && echo "*"
+  [[ $(/usr/local/bin/git status 2> /dev/null | tail -n1) != "nothing to commit, working directory clean" ]] && echo "*"
 }
 
 function parse_git_branch() {
-  git branch --no-color 2> /dev/null | sed -e '/^[^*]/d' -e "s/* \(.*\)/\1$(parse_git_dirty)/"
+  /usr/local/bin/git branch --no-color 2> /dev/null | sed -e '/^[^*]/d' -e "s/* \(.*\)/\1$(parse_git_dirty)/"
 }
 
 #
@@ -74,34 +105,3 @@ function run () {
 # Evaluates the specified arguments to `node`
 #
 function nev() { node -pe "$@"; }
-
-#
-# Override the Git command
-# Source: https://github.com/IonicaBizau/git-stats#catching-the-git-commit-command
-#
-git() {
-  cmd=$1
-  shift
-  extra=""
-
-  quoted_args=""
-  whitespace="[[:space:]]"
-  for i in "$@"
-  do
-      quoted_args="$quoted_args \"$i\""
-  done
-
-  cmdToRun="`which git` "$cmd" $quoted_args"
-  cmdToRun=`echo $cmdToRun | sed -e 's/^ *//' -e 's/ *$//'`
-  bash -c "$cmdToRun"
-  if [ $? -eq 0 ]; then
-    # Commit stats
-    if [ "$cmd" == "commit" ]; then
-      commit_hash=`git rev-parse HEAD`
-      repo_url=`git config --get remote.origin.url`
-      commit_date=`git log -1 --format=%cd`
-      commit_data="\"{ \"date\": \"$commit_date\", \"url\": \"$repo_url\", \"hash\": \"$commit_hash\" }\""
-      git-stats --record "$commit_data"
-    fi
-  fi
-}
