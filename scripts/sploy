@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+TARGET="${PWD##*/}"
+SERVER=$1
+VERSION="`pkgver package.json`"
+
+if [ -z "$SERVER" ]; then
+  echo "usage: sploy <USER@SERVER>"
+  exit 1
+fi
+
+FULLNAME="$TARGET-$VERSION"
+TARBALL="$TARGET-$VERSION.tgz"
+
+echo "Creating tarball"
+pushd ../
+tar -czf "$TARBALL" "$TARGET/"
+
+echo "Copying tarball"
+rsync -raP "$TARBALL" "$SERVER:"
+
+echo "Untar'ing and moving into place..."
+ssh "$SERVER" "tar -xzf $TARBALL; mv $TARGET $FULLNAME"

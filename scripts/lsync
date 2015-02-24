@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+TARGET="${PWD##*/}"
+TARGET_DIR=$1
+SERVER=$2
+VERSION=$3
+FULLNAME="$TARGET-$VERSION"
+
+if [ -z "$3" ]; then
+  VERSION="`pkgver package.json`"
+fi
+
+if [ -z "$SERVER" ]; then
+  echo "usage: lsync <DIR> <USER@SERVER>"
+  exit 1
+fi
+
+echo "Sync \"$TARGET_DIR\" to \"$SERVER:$FULLNAME/$TARGET_DIR\""
+rsync -raP "$TARGET_DIR" "$SERVER:$FULLNAME/$TARGET_DIR"
