@@ -107,14 +107,20 @@ checkgit
 if [ -z $TAG_ONLY ]; then
   run git add .
   run git commit -m "$COMMIT_MSG"
-  run git push origin master
 fi
 
 #
 # Always tag since we are version bumping.
 #
-run git tag -a "v$VERSION" -m "Version $VERSION"
+run git tag -a "$VERSION" -m "Version $VERSION"
 run git push --tags
+
+#
+# Push to `master` only if `-t` is not set
+#
+if [ -z $TAG_ONLY ]; then
+  run git push origin master
+fi
 
 # Check for a package.json
 if [ -z $NO_NPM ]; then
