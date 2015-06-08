@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+#
+# Based on `git-changelog` from git-extras
+# https://github.com/tj/git-extras/blob/master/bin/git-changelog
+#
+
 function tag_header () {
   TAG=$1
   DATE=`git --no-pager log --pretty="format: %cD" --max-count=1 $TAG`
