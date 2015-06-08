@@ -112,7 +112,7 @@ fi
 #
 # Always tag since we are version bumping.
 #
-run git tag -a "v$VERSION" -m "Version $VERSION"
+run git tag -a "$VERSION" -m "Version $VERSION"
 run git push --tags
 
 #
