@@ -7,4 +7,5 @@ npm i -g \
   jscs \
   jshint \
   eslint \
-  http-server
+  http-server \
+  vbump
