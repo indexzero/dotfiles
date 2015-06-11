@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+npm i -g \
+  lice-js \
+  forever \
+  json \
+  jscs \
+  jshint \
+  eslint \
+  http-server \
+  vbump
