@@ -1,8 +1,10 @@
+#!/usr/bin/env bash
 
 npm i -g \
   lice-js \
   forever \
-  npm \
-  jitsu \
+  json \
   jscs \
-  jshint
+  jshint \
+  eslint \
+  http-server
