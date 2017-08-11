@@ -29,3 +29,9 @@ export PATH=$HOME/.scripts:$PATH
 if [ -z "$JITSU_ENV" ]; then
   export JITSU_ENV="production"
 fi
+
+#
+# React Native development on Android
+#
+export ANDROID_HOME=~/Library/Android/sdk
+export PATH=~/Library/Android/sdk/tools:~/Library/Android/sdk/platform-tools:$PATH
