@@ -1,4 +1,6 @@
 {
+	"aprosopo_dark_dirty_red": true,
+	"aprosopo_dark_green": true,
 	"binary_file_patterns":
 	[
 		"*.jpg",
@@ -16,7 +18,7 @@
 		"*.zip"
 	],
 	"codeintel_scan_files_in_project": true,
-	"color_scheme": "Packages/Color Scheme - Default/Twilight.tmTheme",
+	"color_scheme": "Packages/Color Scheme - Default/Monokai.tmTheme",
 	"file_exclude_patterns":
 	[
 		"*.pyc",
@@ -37,26 +39,31 @@
 		".DS_Store",
 		"*.class",
 		"*.psd",
-		"*.db"
+		"*.db",
+		"package-lock.json"
 	],
 	"folder_exclude_patterns":
 	[
 		".svn",
 		".git",
 		".hg",
+		".nyc_output",
 		"CVS",
 		"node_modules",
 		"lcov-report",
 		"coverage-integration",
-		"coverage-unit"
+		"coverage-unit",
+		"coverage"
 	],
 	"font_face": "Menlo",
-	"font_size": 17.0,
+	"font_size": 18.0,
 	"ignored_packages":
 	[
+		"Stylus",
 		"Vintage"
 	],
 	"tab_size": 2,
+	"theme": "Default.sublime-theme",
 	"translate_tabs_to_spaces": true,
 	"trim_trailing_white_space_on_save": true
 }
