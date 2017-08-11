@@ -9,6 +9,7 @@ alias emptytrash="find $HOME/.Trash -not -path $HOME/.Trash -exec rm -rf {} \; 2
 
 # github
 alias gh=". ghi"
+alias cat="ccat"
 
 # cwd in node. pwd on Linux.
 alias cwd="pwd"
