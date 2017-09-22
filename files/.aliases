@@ -20,6 +20,7 @@ alias gci="git commit"
 alias gap="git add -p"
 alias gst="git status"
 alias gti="git"
+alias gita="git pull origin master && git fetch"
 
 # make
 alias maek="make"
