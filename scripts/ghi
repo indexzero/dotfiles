@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 
 
+if [ -z $GIT_REMOTE ]; then
+  GIT_REMOTE="github.com"
+fi
+
 FULLNAME="${@: -1}"
 
 IFS='/'
@@ -20,12 +24,12 @@ usage: gh options user/repo
 Changes directory into ~/Git/user/repo cloning from Github if necessary
 
 OPTIONS:
-   -s  Clone over SSH
+   -s  Clone over HTTPS
    -h  Show this message.
 EOF
 }
 
-GIT_URL="https://github.com/$GIT_USER/$GIT_REPO"
+GIT_URL="git@$GIT_REMOTE:$GIT_USER/$GIT_REPO"
 
 while getopts "hs" OPTION; do
   case $OPTION in
@@ -34,7 +38,7 @@ while getopts "hs" OPTION; do
       exit
       ;;
     s)
-      GIT_URL="git@github.com:$GIT_USER/$GIT_REPO"
+      GIT_URL="https://$GIT_REMOTE/$GIT_USER/$GIT_REPO"
       ;;
     \?)
       echo "$OPTION"
