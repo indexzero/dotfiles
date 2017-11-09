@@ -1,6 +1,6 @@
 [user]
-	name = indexzero
-	email = charlie.robbins@gmail.com
+  name = indexzero
+  email = charlie.robbins@gmail.com
 [color]
   diff = auto
   status = auto
@@ -13,6 +13,6 @@
   changed = yellow
   untracked = red
 [core]
-	excludesfile = /Users/charlie/.gitignore
+  excludesfile = ~/.gitignore
 [alias]
-	lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+  lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
