@@ -22,6 +22,9 @@ alias gst="git status"
 alias gti="git"
 alias gita="git pull origin master && git fetch"
 
+# npm
+alias cnit="rm -rf node_modules package-lock.json && npm it"
+
 # make
 alias maek="make"
 alias meak="make"
