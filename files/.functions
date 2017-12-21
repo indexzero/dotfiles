@@ -30,6 +30,13 @@ function set_colors() {
   fi
 }
 
+#
+# Generates CHANGELOG.md entires for a file based on git diff
+#
+function distlog() {
+  git --no-pager diff package.json | grep "+  " |  sed 's/[":,]//g' | awk '{print "- Bump `"$2"` to `"$3"`."}';
+}
+
 function parse_git_dirty() {
   if [ "`git status 2> /dev/null | tail -n1`" != "nothing to commit, working tree clean" ]; then echo "*"; fi
 }
