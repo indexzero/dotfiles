@@ -23,9 +23,9 @@ alias gti="git"
 alias gita="git pull origin master && git fetch"
 
 # npm
-alias cnit="rm -rf node_modules package-lock.json && npm it"
-alias cni="rm -rf node_modules package-lock.json && npm i"
-alias cnio="rm -rf node_modules package-lock.json && npm i && npm outdated"
+alias cnit="rm -rf node_modules package-lock.json npm-shrinkwrap.json && npm it"
+alias cni="rm -rf node_modules package-lock.json npm-shrinkwrap.json && npm i"
+alias cnio="rm -rf node_modules package-lock.json npm-shrinkwrap.json && npm i && npm outdated"
 
 # make
 alias maek="make"
