@@ -14,6 +14,9 @@ alias cat="ccat"
 # cwd in node. pwd on Linux.
 alias cwd="pwd"
 
+# kubernetes
+alias k="kubectl"
+
 # git
 alias gaa="git add ."
 alias gci="git commit"
