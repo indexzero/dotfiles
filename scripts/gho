@@ -4,8 +4,8 @@ if [ -z "$PWD" ]; then
   PWD="`pwd`"
 fi
 
-if [ -z "$GIT_HOST" ]; then
-  GIT_HOST="github.com"
+if [ -z $GIT_REMOTE ]; then
+  GIT_REMOTE="github.com"
 fi
 
 BASE_DIR="`dirname $PWD`"
