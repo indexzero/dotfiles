@@ -11,7 +11,7 @@ fi
 BASE_DIR="`dirname $PWD`"
 GIT_REPO="`basename $PWD`"
 GIT_USER="`basename $BASE_DIR`"
-GIT_URL="https://$GIT_HOST/$GIT_USER/$GIT_REPO/"
+GIT_URL="https://$GIT_REMOTE/$GIT_USER/$GIT_REPO/"
 
 echo "open \"$GIT_URL\""
 open "$GIT_URL"
