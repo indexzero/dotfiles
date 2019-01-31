@@ -77,6 +77,11 @@ function run () {
 }
 
 #
+# nterm (@)
+#
+function n8() { ~/.nvm/versions/node/v8.15.0/bin/node; }
+
+#
 # nev (@)
 # Evaluates the specified arguments to `node`
 #
