@@ -1,3 +1,19 @@
 #!/usr/bin/env bash
 
+#
+# Check https://brew.sh/ for latest
+# /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+#
+
+set -x;
+
 brew install ccat
+brew install git-lfs
+
+# Update global git config
+git lfs install
+
+# Update system git config
+git lfs install --system
+
+set +x;
