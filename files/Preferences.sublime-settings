@@ -1,69 +1,52 @@
 {
-	"aprosopo_dark_dirty_red": true,
-	"aprosopo_dark_green": true,
-	"binary_file_patterns":
-	[
-		"*.jpg",
-		"*.jpeg",
-		"*.png",
-		"*.gif",
-		"*.ttf",
-		"*.tga",
-		"*.dds",
-		"*.ico",
-		"*.eot",
-		"*.pdf",
-		"*.swf",
-		"*.jar",
-		"*.zip"
-	],
-	"codeintel_scan_files_in_project": true,
-	"color_scheme": "Packages/Color Scheme - Default/Monokai.tmTheme",
-	"file_exclude_patterns":
-	[
-		"*.pyc",
-		"*.pyo",
-		"*.exe",
-		"*.dll",
-		"*.obj",
-		"*.o",
-		"*.a",
-		"*.lib",
-		"*.so",
-		"*.dylib",
-		"*.ncb",
-		"*.sdf",
-		"*.suo",
-		"*.pdb",
-		"*.idb",
-		".DS_Store",
-		"*.class",
-		"*.psd",
-		"*.db",
-		"package-lock.json"
-	],
-	"folder_exclude_patterns":
-	[
-		".svn",
-		".git",
-		".hg",
-		".nyc_output",
-		"CVS",
-		"node_modules",
-		"lcov-report",
-		"coverage-integration",
-		"coverage-unit",
-		"coverage"
-	],
-	"font_face": "Menlo",
-	"font_size": 18.0,
-	"ignored_packages":
-	[
-		"Stylus",
-		"Vintage"
-	],
-	"tab_size": 2,
-	"theme": "Default.sublime-theme",
-	"translate_tabs_to_spaces": true,
-	"trim_trailing_white_space_on_save": true
+  "codeintel_scan_files_in_project": true,
+  "color_scheme": "Packages/Ecmascript Syntax/nested/build/ecmascript/excelsior.tmTheme",
+  "folder_exclude_patterns":
+  [
+    ".svn",
+    ".git",
+    ".hg",
+    ".nyc_output",
+    "CVS",
+    "dist",
+    "coverage",
+    "coverage-integration",
+    "coverage-unit",
+    "lcov-report",
+    "node_modules"
+  ],
+  "file_exclude_patterns":
+  [
+    "*.pyc",
+    "*.pyo",
+    "*.exe",
+    "*.dll",
+    "*.obj",
+    "*.o",
+    "*.a",
+    "*.lib",
+    "*.so",
+    "*.dylib",
+    "*.ncb",
+    "*.sdf",
+    "*.suo",
+    "*.pdb",
+    "*.idb",
+    ".DS_Store",
+    "*.class",
+    "*.psd",
+    "*.db",
+    "*.sublime-workspace",
+    "package-lock.json",
+    "yarn.lock"
+  ],
+  "font_face": "Menlo",
+  "font_size": 18.0,
+  "ignored_packages":
+  [
+    "Vintage"
+  ],
+  "tab_size": 2,
+  "translate_tabs_to_spaces": true,
+  "trim_trailing_white_space_on_save": true
 }

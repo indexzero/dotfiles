@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-
-npm i -g \
-  lice-js \
-  forever \
-  json \
-  eslint \
-  http-server \
-  vbump

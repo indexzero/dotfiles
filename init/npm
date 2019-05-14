@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+npm i -g vbump
+npm i -g git-semver2-tag
+npm i -g json
+npm i -g forever
+npm i -g http-server
