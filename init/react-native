@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -x;
+
 #
 # Install Java8
 #
@@ -12,3 +14,5 @@
 # curl -O "https://dl.google.com/android/repository/tools_r25.2.4-linux.zip"
 # mkdir ~/Library/Android
 # unzip tools_r25.2.4-linux.zip -d ~/Library/Android/sdk
+
+set +x;
