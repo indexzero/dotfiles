@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+if [ ! -d .git ]; then
+  echo "No .git directory found."
+  exit 1
+fi
+
+if [ ! -f .git/config ]; then
+  echo "No .git/config found."
+  exit 1
+fi
+
+EXISTS=$(cat .git/config | grep "charlie.robbins@gmail.com")
+
+if [ ! -z "$EXISTS" ]; then
+  echo "Found OSS user in .git/config."
+  exit 0
+fi
+
+git config --local user.name indexzero
+git config --local user.email charlie.robbins@gmail.com
