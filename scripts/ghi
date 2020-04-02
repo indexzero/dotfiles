@@ -7,10 +7,11 @@ fi
 
 FULLNAME="${@: -1}"
 
-IFS='/'
-read -a PARTS <<< "$FULLNAME"
-GIT_USER="${PARTS[0]}"
-GIT_REPO="${PARTS[1]}"
+IFS='/' read -A PARTS <<< "$FULLNAME"
+GIT_USER="${PARTS[1]}"
+GIT_REPO="${PARTS[2]}"
+
+echo
 
 #
 # usage()
