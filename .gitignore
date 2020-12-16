@@ -1,3 +1,6 @@
 dotfiles/.private
+dotfiles/.ssh
+dotfiles/.gitconfig-git
+dotfiles/.gitconfig-gitec
 scripts/private
 npm-debug.log

@@ -5,6 +5,10 @@ if [ -z $GIT_REMOTE ]; then
   GIT_REMOTE="github.com"
 fi
 
+if [ -z $GIT_ROOT ]; then
+  GIT_ROOT="Git"
+fi
+
 FULLNAME="${@: -1}"
 
 IFS='/' read -A PARTS <<< "$FULLNAME"
@@ -54,7 +58,7 @@ if [ -z "$GIT_USER" ] || [ -z "$GIT_REPO" ]; then
   exit
 fi
 
-GIT_DIR="$HOME/Git"
+GIT_DIR="$HOME/$GIT_ROOT"
 USER_DIR="$GIT_DIR/$GIT_USER"
 REPO_DIR="$USER_DIR/$GIT_REPO"
 
