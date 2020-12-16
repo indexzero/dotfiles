@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 if [ -z $GIT_REMOTE ]; then
   GIT_REMOTE="github.com"
 fi
@@ -68,6 +67,7 @@ if [ ! -d "$USER_DIR" ]; then
 fi
 
 if [ ! -d "$REPO_DIR" ]; then
+  echo "git clone $GIT_URL $REPO_DIR"
   git clone "$GIT_URL" "$REPO_DIR"
 fi
 
