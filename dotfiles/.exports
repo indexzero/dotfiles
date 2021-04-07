@@ -24,6 +24,12 @@ export PATH="$HOME/.local/bin:/usr/local/bin:/usr/local/sbin:$HOME/bin:$PATH"
 export PATH=$HOME/.scripts:$PATH
 
 #
+# Nope. Nope. Nope.
+# https://scarf.sh/
+#
+export SCARF_ANALYTICS=false
+
+#
 # Set jitsu env variables
 #
 if [ -z "$JITSU_ENV" ]; then
