@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/bin/zsh
 
 SCRIPT_PATH=${0%/*}
-TFILES="$SCRIPT_PATH/files"
+TFILES="$SCRIPT_PATH/dotfiles"
 TSCRIPTS="$SCRIPT_PATH/scripts"
 TBACK="$HOME/.backup"
 
@@ -44,5 +44,5 @@ fi
 
 move_files "files"
 move_files "scripts" ".scripts"
-echo "Sourcing ~/.profile"
-source $HOME/.profile
+echo "Sourcing ~/.zshrc"
+source $HOME/.zshrc

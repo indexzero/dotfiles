@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
 
-
 if [ -z $GIT_REMOTE ]; then
   GIT_REMOTE="github.com"
 fi
 
+if [ -z $GIT_ROOT ]; then
+  GIT_ROOT="Git"
+fi
+
 FULLNAME="${@: -1}"
 
-IFS='/'
-read -a PARTS <<< "$FULLNAME"
-GIT_USER="${PARTS[0]}"
-GIT_REPO="${PARTS[1]}"
+IFS='/' read -A PARTS <<< "$FULLNAME"
+GIT_USER="${PARTS[1]}"
+GIT_REPO="${PARTS[2]}"
+
+echo
 
 #
 # usage()
@@ -53,7 +57,7 @@ if [ -z "$GIT_USER" ] || [ -z "$GIT_REPO" ]; then
   exit
 fi
 
-GIT_DIR="$HOME/Git"
+GIT_DIR="$HOME/$GIT_ROOT"
 USER_DIR="$GIT_DIR/$GIT_USER"
 REPO_DIR="$USER_DIR/$GIT_REPO"
 
@@ -63,6 +67,7 @@ if [ ! -d "$USER_DIR" ]; then
 fi
 
 if [ ! -d "$REPO_DIR" ]; then
+  echo "git clone $GIT_URL $REPO_DIR"
   git clone "$GIT_URL" "$REPO_DIR"
 fi
 

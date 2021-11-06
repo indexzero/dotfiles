@@ -12,6 +12,9 @@
     "coverage",
     "coverage-integration",
     "coverage-unit",
+    "cypress-coverage",
+    "cypress/videos",
+    "cypress/screenshots",
     "lcov-report",
     "node_modules"
   ],

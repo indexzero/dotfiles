@@ -24,6 +24,7 @@ alias gap="git add -p"
 alias gst="git status"
 alias gti="git"
 alias gita="git pull origin master && git fetch"
+alias gitam="git pull origin main && git fetch"
 
 # npm
 alias cnit="rm -rf node_modules package-lock.json npm-shrinkwrap.json && npm it"
