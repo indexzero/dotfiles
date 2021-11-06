@@ -1,0 +1,55 @@
+{
+	"codeintel_scan_files_in_project": true,
+	"color_scheme": "Packages/Ecmascript Syntax/nested/build/ecmascript/excelsior.tmTheme",
+	"file_exclude_patterns":
+	[
+		"*.pyc",
+		"*.pyo",
+		"*.exe",
+		"*.dll",
+		"*.obj",
+		"*.o",
+		"*.a",
+		"*.lib",
+		"*.so",
+		"*.dylib",
+		"*.ncb",
+		"*.sdf",
+		"*.suo",
+		"*.pdb",
+		"*.idb",
+		".DS_Store",
+		"*.class",
+		"*.psd",
+		"*.db",
+		"*.sublime-workspace",
+		"package-lock.json",
+		"yarn.lock"
+	],
+	"folder_exclude_patterns":
+	[
+		".svn",
+		".git",
+		".hg",
+		".nyc_output",
+		"CVS",
+		"coverage",
+		"coverage-integration",
+		"coverage-unit",
+		"cypress-coverage",
+		"cypress/videos",
+		"cypress/screenshots",
+		"lcov-report",
+		"node_modules"
+	],
+	"font_face": "Menlo",
+	"font_size": 36.0,
+	"ignored_packages":
+	[
+		"Markdown",
+		"Vintage",
+	],
+	"tab_size": 2,
+	"translate_tabs_to_spaces": true,
+	"trim_trailing_white_space_on_save": true,
+}
