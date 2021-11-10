@@ -2,10 +2,14 @@
 
 #
 # Check https://brew.sh/ for latest
-# /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+# /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 #
 
 set -x;
+
+# - Run these two commands in your terminal to add Homebrew to your PATH:
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> /Users/charlierobbins/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv)"
 
 brew install ccat
 brew install git-lfs

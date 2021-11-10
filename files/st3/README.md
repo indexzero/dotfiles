@@ -2,12 +2,12 @@
 
 ```
 # Exit Sublime & Remove Local Settings
-rm -rf ~/Library/Application\ Support/Sublime\ Text\ 3/Packages/User/
+rm -rf ~/Library/Application\ Support/Sublime\ Text/Packages/User/
 
 # Clone & Replace with Remote Settings
 git clone git@github.com:indexzero/dotfiles
 cd dotfiles
-cp -r files/st3 ~/Library/Application\ Support/Sublime\ Text\ 3/Packages/User 
+cp -r files/st3 ~/Library/Application\ Support/Sublime\ Text/Packages/User 
 
 # Open Sublime Text
 ```
