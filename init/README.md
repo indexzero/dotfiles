@@ -5,6 +5,12 @@
 - [`npm` packages](#npm)
 - [Chrome Extensions](#chrome-extensions)
 
+## Volta
+
+```
+curl https://get.volta.sh | bash
+```
+
 ### Sublime Text 3
 
 - [See: `Package Control.sublime-preferences`](../files/Package\ Control.sublime-preferences)
