@@ -6,7 +6,7 @@ set -x;
 sudo ln -s /Applications/Sublime\ Text.app/Contents/SharedSupport/bin/subl /usr/local/bin/subl
 
 # Install mate command
-sudo ln -s /Applications/TextMate.app/Contents/Resources/mate /usr/local/bin/mate
+sudo ln -s /Applications/TextMate.app/Contents/MacOS/mate /usr/local/bin/mate
 
 # Node completion
 mkdir $HOME/.node-completion
