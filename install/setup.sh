@@ -42,7 +42,7 @@ if [ ! -d $TBACK ]; then
   mkdir -p $TBACK
 fi
 
-move_files "files"
+move_files "dotfiles"
 move_files "scripts" ".scripts"
 echo "Sourcing ~/.zshrc"
 source $HOME/.zshrc
