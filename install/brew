@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/zsh
 
 #
 # Check https://brew.sh/ for latest
@@ -8,8 +8,8 @@
 set -x;
 
 # - Run these two commands in your terminal to add Homebrew to your PATH:
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> /Users/charlierobbins/.zprofile
-eval "$(/opt/homebrew/bin/brew shellenv)"
+echo 'eval "$(/usr/local/bin/brew shellenv)"' >> /Users/charlierobbins/.zprofile
+eval "$(/usr/local/bin/brew shellenv)"
 
 brew install ccat
 brew install git-lfs
@@ -19,11 +19,5 @@ brew install exa
 brew install diff-so-fancy
 brew install fzf
 brew install duf
-
-# Update global git config
-git lfs install
-
-# Update system git config
-git lfs install --system
 
 set +x;

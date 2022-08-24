@@ -1,0 +1,11 @@
+#!/bin/zsh
+
+set -x;
+
+# Update global git config
+git lfs install
+
+# Update system git config
+git lfs install --system
+
+set +x;

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/zsh
 
 #
 # Based on `git-changelog` from git-extras

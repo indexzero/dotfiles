@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/zsh
 
 for DIR in `ls .`; do
   echo "cd $DIR"

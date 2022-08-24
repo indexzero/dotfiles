@@ -1,8 +1,8 @@
 #!/bin/zsh
 
 SCRIPT_PATH=${0%/*}
-TFILES="$SCRIPT_PATH/dotfiles"
-TSCRIPTS="$SCRIPT_PATH/scripts"
+TFILES="$SCRIPT_PATH/../dotfiles"
+TSCRIPTS="$SCRIPT_PATH/../scripts"
 TBACK="$HOME/.backup"
 
 function move_files () {
@@ -42,7 +42,7 @@ if [ ! -d $TBACK ]; then
   mkdir -p $TBACK
 fi
 
-move_files "files"
-move_files "scripts" ".scripts"
+move_files "../dotfiles"
+move_files "../scripts" ".scripts"
 echo "Sourcing ~/.zshrc"
 source $HOME/.zshrc
