@@ -4,3 +4,5 @@ dotfiles/.gitconfig-git
 dotfiles/.gitconfig-gitec
 scripts/private
 npm-debug.log
+.private
+.DS_Store
