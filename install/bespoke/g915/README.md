@@ -12,7 +12,15 @@ Unfortunately as it is a Windows-native keyboard there are a few necessary chang
 hidutil property --set '{"UserKeyMapping":[
   {
     "HIDKeyboardModifierMappingSrc": 0x700000065,
-    "HIDKeyboardModifierMappingDst": 0x7000000E4
+    "HIDKeyboardModifierMappingDst": 0xFF00000003
   }
 ]}'
 ```
+
+See also: https://hidutil-generator.netlify.app/
+
+## System Preferences > Keyboard > Modifier Keys
+
+Be sure to swap the CMD and Option keys in System Preferences for only the external keyboard
+
+
