@@ -7,10 +7,6 @@
 
 set -x;
 
-# - Run these two commands in your terminal to add Homebrew to your PATH:
-echo 'eval "$(/usr/local/bin/brew shellenv)"' >> /Users/charlierobbins/.zprofile
-eval "$(/usr/local/bin/brew shellenv)"
-
 brew install ccat
 brew install git-lfs
 brew install cointop

@@ -7,17 +7,22 @@ Seemed like the thing do to. My dotfiles.
 
 
 ``` zsh
+# Invade your zim with latest from https://github.com/zimfw/zimfw
+curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zsh | zsh
+
 # Here. Be. Dragons.
 ./install/setup.sh
 ./install/brew
 ./install/git
 ./install/npm
 ./install/editors
+
+# Peripherals! Peripherals! Peripherals! I mean developers! 
+./install/bespoke/g915/setup
 ```
 
 ## Tools of note
 
-https://github.com/zimfw/zimfw
 https://streamhut.io/
 https://mermaid.live
 https://activitywatch.net/

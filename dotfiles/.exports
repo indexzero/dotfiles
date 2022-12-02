@@ -30,13 +30,6 @@ export PATH=$HOME/.scripts:$PATH
 export SCARF_ANALYTICS=false
 
 #
-# Set jitsu env variables
-#
-if [ -z "$JITSU_ENV" ]; then
-  export JITSU_ENV="production"
-fi
-
-#
 # React Native development on Android
 #
 export ANDROID_HOME=~/Library/Android/sdk

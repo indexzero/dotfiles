@@ -1,0 +1,9 @@
+#!/bin/zsh
+
+SCRIPT_PATH=${0%/*}
+
+set -x;
+
+cp $SCRIPT_PATH/dev.charlie.local.g915.plist ~/Library/LaunchAgents/dev.charlie.local.g915.plist
+
+set +x;
