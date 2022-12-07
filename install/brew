@@ -15,6 +15,7 @@ brew install exa
 brew install diff-so-fancy
 brew install fzf
 brew install duf
+brew install coreutils
 
 brew install mysql
 # brew services restart mysql
