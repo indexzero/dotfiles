@@ -46,6 +46,21 @@ function parse_git_branch() {
 }
 
 #
+# bho() ghi but for Bitbucket
+#
+function bho() {
+  GIT_REMOTE="bitbucket.org" GIT_ROOT="Bitbucket" gho
+}
+
+#
+# bhr() ghr but for Bitbucket
+#
+function bhr() {
+  GIT_REMOTE="bitbucket.org" ghr $1
+}
+
+
+#
 # fn_exists (fn)
 # Returns a value determining if the function fn exists.
 #
