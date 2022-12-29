@@ -11,6 +11,9 @@ alias emptytrash="find $HOME/.Trash -not -path $HOME/.Trash -exec rm -rf {} \; 2
 alias gh=". ghi"
 alias cat="ccat"
 
+# bitbucket
+alias bh="GIT_REMOTE="bitbucket.org" GIT_ROOT="Bitbucket" . ghi"
+
 # cwd in node. pwd on Linux.
 alias cwd="pwd"
 
