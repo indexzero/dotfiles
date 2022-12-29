@@ -1,13 +1,17 @@
 # Sublime Text 3
 
+## Installation
+
+Prior to executing these instructions ensure that Package Control has been installed for ST3
+
 ```
 # Exit Sublime & Remove Local Settings
-rm -rf ~/Library/Application\ Support/Sublime\ Text/Packages/User/
+rm -rf ~/Library/Application\ Support/Sublime\ Text\ 3/Packages/User/
 
 # Clone & Replace with Remote Settings
 git clone git@github.com:indexzero/dotfiles
 cd dotfiles
-cp -r files/st3 ~/Library/Application\ Support/Sublime\ Text/Packages/User 
+cp -r settings/st3 ~/Library/Application\ Support/Sublime\ Text\ 3/Packages/User 
 
 # Open Sublime Text
 ```

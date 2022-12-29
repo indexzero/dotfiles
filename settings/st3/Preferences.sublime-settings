@@ -43,7 +43,7 @@
 		"node_modules"
 	],
 	"font_face": "Menlo",
-	"font_size": 36.0,
+	"font_size": 20.0,
 	"ignored_packages":
 	[
 		"Markdown",
