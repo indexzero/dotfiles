@@ -19,6 +19,11 @@ export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
 export PATH="$HOME/.local/bin:/usr/local/bin:/usr/local/sbin:$HOME/bin:$PATH"
 
 #
+# Python 3.9
+#
+export PATH="$HOME/Library/Python/3.9/bin:$PATH"
+
+#
 # Export the local .scripts dir
 #
 export PATH=$HOME/.scripts:$PATH
