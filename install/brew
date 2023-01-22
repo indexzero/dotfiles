@@ -22,6 +22,7 @@ brew install duf
 brew install coreutils
 brew install cmake
 brew install tectonic
+brew install poppler
 
 brew install mysql
 # brew services restart mysql
