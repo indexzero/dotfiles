@@ -21,8 +21,11 @@ brew install fzf
 brew install duf
 brew install coreutils
 brew install cmake
+
+# All for LaTeX
 brew install tectonic
 brew install poppler
+brew install latexindent
 
 brew install mysql
 # brew services restart mysql
