@@ -21,6 +21,7 @@ brew install fzf
 brew install duf
 brew install coreutils
 brew install cmake
+brew install tectonic
 
 brew install mysql
 # brew services restart mysql

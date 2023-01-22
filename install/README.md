@@ -1,9 +1,15 @@
 # Initial Installation
 
-- [Sublime Text 3](#sublime-text-3)
-- [Homebrew packages](#homebrew)
-- [`npm` packages](#npm)
-- [Chrome Extensions](#chrome-extensions)
+- [Initial Installation](#initial-installation)
+  - [Volta](#volta)
+    - [Sublime Text 3](#sublime-text-3)
+    - [`Homebrew`](#homebrew)
+    - [`npm`](#npm)
+    - [Chrome Extensions](#chrome-extensions)
+  - [Docker](#docker)
+  - [Validation Tips](#validation-tips)
+- [Future Maybes](#future-maybes)
+- [Known issues](#known-issues)
 
 ## Volta
 
@@ -46,6 +52,12 @@ Notable:
 
 - Docker Desktop: https://www.docker.com/products/docker-desktop/
 
+## Validation Tips
+
+* **.gitconfig** Validate if `includeif` is working:
+```
+git config --show-origin --get user.email
+```
 
 # Future Maybes
 
