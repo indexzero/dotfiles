@@ -17,7 +17,7 @@
   pager = diff-so-fancy | less --tabs=4 -RFX
 [alias]
   lg = log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
-[includeIf "gitdir:~/BitBucket/"]
+[includeIf "gitdir:~/Bitbucket/"]
     path = ~/Bitbucket/.gitconfig
 [init]
   defaultBranch = main
