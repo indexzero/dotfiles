@@ -9,6 +9,14 @@ elif infocmp xterm-256color >/dev/null 2>&1; then
 fi
 
 #
+# PyEnv
+# https://github.com/pyenv/pyenv#set-up-your-shell-environment-for-pyenv
+#
+export PYENV_ROOT="$HOME/.pyenv"
+command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
+eval "$(pyenv init -)"
+
+#
 # MacPorts Installer addition on 2011-12-01_at_23:41:50: adding an appropriate PATH variable for use with MacPorts.
 #
 export PATH="/opt/local/bin:/opt/local/sbin:$PATH"

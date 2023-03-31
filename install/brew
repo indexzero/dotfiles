@@ -21,6 +21,7 @@ brew install fzf
 brew install duf
 brew install coreutils
 brew install cmake
+brew install pyenv
 
 # All for LaTeX
 brew install tectonic
@@ -30,6 +31,7 @@ brew install latexindent
 brew install mysql
 # brew services restart mysql
 # brew services stop mysql
+brew install postgresql
 
 brew tap mongodb/brew
 brew install mongodb-community
