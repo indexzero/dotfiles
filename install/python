@@ -2,3 +2,22 @@
 
 # Install poetry
 curl -sSL https://install.python-poetry.org | python3 -
+
+# Install pyenv
+brew install pyenv
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
+echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
+echo 'eval "$(pyenv init -)"' >> ~/.zshrc
+
+# Install Anaconda
+# https://www.anaconda.com/download/
+#
+# Install Kivy
+# https://kivy.org/doc/stable/installation/installation-osx.html#using-homebrew-with-pip
+#
+# brew install pkg-config
+# xcode-select --install
+#
+# Use pip?
+# python -m pip install "kivy[base]"
+# brew install glpk
