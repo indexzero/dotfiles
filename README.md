@@ -23,14 +23,15 @@ curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zsh | 
 
 ## Tools of note
 
-https://streamhut.io/
-https://mermaid.live
-https://activitywatch.net/
-https://asciinema.org/
-https://isoflow.io/
-https://floobits.com/
-https://www.socialgrep.com/
+- https://streamhut.io/
+- https://mermaid.live
+- https://activitywatch.net/
+- https://asciinema.org/
+- https://isoflow.io/
+- https://floobits.com/
+- https://www.socialgrep.com/
+- https://d2lang.com/
 
 ## Apps
 
-Standard Notes
+- [Obsidian](https://obsidian.md)
