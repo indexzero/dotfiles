@@ -43,4 +43,10 @@ brew install mongodb-community
 brew tap espanso/espanso
 brew install espanso
 
+brew install java
+sudo ln -sfn /opt/homebrew/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
+
+brew install imagemagick
+
+
 set +x;
