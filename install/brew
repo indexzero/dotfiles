@@ -18,6 +18,8 @@ brew install bat
 brew install exa
 brew install diff-so-fancy
 brew install fzf
+# https://github.com/sharkdp/fd
+brew install fd
 brew install duf
 brew install coreutils
 brew install cmake
@@ -27,6 +29,9 @@ brew install pyenv
 brew install tectonic
 brew install poppler
 brew install latexindent
+
+# Diagrams
+brew install d2
 
 brew install mysql
 # brew services restart mysql
@@ -46,6 +51,8 @@ brew install espanso
 brew install java
 sudo ln -sfn /opt/homebrew/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
 
+# Also sips
+# https://rachelrly.medium.com/how-to-compress-images-in-the-mac-terminal-57f8ddd11926
 brew install imagemagick
 
 
