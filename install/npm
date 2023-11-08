@@ -8,5 +8,7 @@ npm i -g json
 npm i -g forever
 npm i -g http-server
 npm i -g fx
+npm i -g yarn
+yarn config set --home enableTelemetry 0
 
 set +x;
