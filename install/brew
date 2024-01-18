@@ -11,6 +11,7 @@ set -x;
 echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $HOME/.zprofile
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
+brew install gh
 brew install ccat
 brew install git-lfs
 brew install cointop
