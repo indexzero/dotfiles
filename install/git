@@ -8,4 +8,9 @@ git lfs install
 # Update system git config
 git lfs install --system
 
+# TravisCI. nuff said. 
+gh extension install github/gh-actions-importer
+
+# See also: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
+
 set +x;
