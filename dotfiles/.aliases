@@ -8,7 +8,7 @@ alias sourcep='source ~/.profile'
 alias emptytrash="find $HOME/.Trash -not -path $HOME/.Trash -exec rm -rf {} \; 2>/dev/null"
 
 # github
-alias gcd=". ghi"
+alias ghcd=". ghi"
 alias cat="ccat"
 
 # bitbucket
