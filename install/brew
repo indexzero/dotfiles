@@ -56,5 +56,6 @@ sudo ln -sfn /opt/homebrew/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVir
 # https://rachelrly.medium.com/how-to-compress-images-in-the-mac-terminal-57f8ddd11926
 brew install imagemagick
 
+brew install charmbracelet/tap/freeze
 
 set +x;

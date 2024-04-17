@@ -42,3 +42,8 @@ export SCARF_ANALYTICS=false
 #
 export ANDROID_HOME=~/Library/Android/sdk
 export PATH=~/Library/Android/sdk/tools:~/Library/Android/sdk/platform-tools:$PATH
+
+#
+# RUBY FOR THE RUBY GODS
+#
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
