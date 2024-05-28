@@ -47,3 +47,8 @@ export PATH=~/Library/Android/sdk/tools:~/Library/Android/sdk/platform-tools:$PA
 # RUBY FOR THE RUBY GODS
 #
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+
+#
+# GO FOR THE GO GODS
+# 
+export PATH="$HOME/go/bin:$PATH"
