@@ -13,6 +13,7 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 
 brew install gh
 brew install ccat
+brew install tree
 brew install git-lfs
 brew install cointop
 brew install bat
@@ -57,5 +58,7 @@ sudo ln -sfn /opt/homebrew/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVir
 brew install imagemagick
 
 brew install charmbracelet/tap/freeze
+brew install only-switch
+brew install --cask eul
 
 set +x;
