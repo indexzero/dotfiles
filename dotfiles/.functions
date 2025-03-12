@@ -96,3 +96,15 @@ function run () {
 # Evaluates the specified arguments to `node`
 #
 function nev() { node -pe "$@"; }
+
+#
+# git-origin-all-branches
+#
+function git-origin-all-branches() {
+  git fetch --all
+
+  # Create local branches tracking remote ones
+  git branch -r | grep -v 'HEAD' | awk '{print $1}' | sed 's|origin/||' | xargs -I {} git branch --track {} origin/{}
+
+  git pull --all
+}

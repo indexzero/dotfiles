@@ -6,3 +6,5 @@ scripts/private
 npm-debug.log
 .private
 .DS_Store
+.aider*
+.env
