@@ -16,6 +16,7 @@ brew install gh
 brew install ccat
 brew install tree
 brew install xsv
+brew install gcc
 brew install git-lfs
 brew install cointop
 brew install bat
@@ -59,5 +60,10 @@ brew install imagemagick
 brew install charmbracelet/tap/freeze
 brew install only-switch
 brew install --cask eul
+
+brew install --cask ghostty
+brew install fastfetch
+
+brew install withgraphite/tap/graphite
 
 set +x;
