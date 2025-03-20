@@ -3,10 +3,10 @@
 set -x;
 
 # Update global git config
-git lfs install
+git lfs install 
 
 # Update system git config
-git lfs install --system
+sudo git lfs install --system --force
 
 # TravisCI. nuff said. 
 gh extension install github/gh-actions-importer
