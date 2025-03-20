@@ -2,8 +2,9 @@
 
 #
 # Check https://brew.sh/ for latest
-# /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 #
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+/bin/bash -c "eval \"$(/opt/homebrew/bin/brew shellenv)\""
 
 set -x;
 
@@ -50,9 +51,6 @@ brew install mongodb-community
 
 brew tap espanso/espanso
 brew install espanso
-
-brew install java
-sudo ln -sfn /opt/homebrew/opt/openjdk/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk.jdk
 
 # Also sips
 # https://rachelrly.medium.com/how-to-compress-images-in-the-mac-terminal-57f8ddd11926
