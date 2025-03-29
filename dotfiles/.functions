@@ -98,6 +98,12 @@ function run () {
 function nev() { node -pe "$@"; }
 
 #
+# ffiname (name)
+# Finds a file by name
+#
+function ffiname() { find . -iname "*$@*" -type f | sort}
+
+#
 # git-origin-all-branches
 #
 function git-origin-all-branches() {

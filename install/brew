@@ -66,4 +66,6 @@ brew install fastfetch
 
 brew install withgraphite/tap/graphite
 
+brew install pearcleaner
+
 set +x;
