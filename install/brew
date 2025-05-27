@@ -39,6 +39,7 @@ brew install latexindent
 brew install d2
 
 brew install mysql
+# brew services start mysql
 # brew services restart mysql
 # brew services stop mysql
 brew install postgresql
@@ -63,6 +64,8 @@ brew install --cask eul
 
 brew install --cask ghostty
 brew install fastfetch
+brew install ffmpeg
+
 
 brew install withgraphite/tap/graphite
 
