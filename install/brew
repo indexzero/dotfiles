@@ -71,4 +71,7 @@ brew install withgraphite/tap/graphite
 
 brew install pearcleaner
 
+# Used by Claude Code
+brew install ripgrep
+
 set +x;
