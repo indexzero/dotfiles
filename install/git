@@ -13,4 +13,8 @@ gh extension install github/gh-actions-importer
 
 # See also: https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
 
+# Maybe sometimes when you need https instead of ssh
+# git config --global credential.helper osxkeychain
+
+
 set +x;
