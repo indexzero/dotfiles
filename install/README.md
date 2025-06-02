@@ -69,7 +69,7 @@ git config --show-origin --get user.email
 
 2. `.npmrc` configs for local installation not set as part of `./install/npm`:
 ``` sh
-npm c set prefix $HOME/.local
+npm c set prefix $HOME/.npm_local
 ```
 3. `./install/git` requires `sudo`, should we use `--force`? 
 ```
