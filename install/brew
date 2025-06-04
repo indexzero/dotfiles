@@ -74,4 +74,6 @@ brew install pearcleaner
 # Used by Claude Code
 brew install ripgrep
 
+brew install dust
+
 set +x;
