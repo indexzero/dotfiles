@@ -9,3 +9,20 @@ pip install aider-chat
 # To work with Claude 3 Opus:
 # export ANTHROPIC_API_KEY=your-key-goes-here
 # aider --opus
+
+
+# MLX - Whisper
+# https://goodsnooze.gumroad.com/l/macwhisper
+# pip3 install mlx-whisper --break-system-packages
+#
+# then:
+#
+# mlx_whisper <file> --model mlx-community/whisper-large-v3-turbo
+#
+# see also: 
+# https://simonw.substack.com/p/run-llms-on-macos-using-llm-mlx-and
+# https://huggingface.co/collections/mlx-community/whisper-663256f9964fbb1177db93dc
+# https://github.com/ml-explore/mlx-examples/tree/main/whisper
+
+# If we're going to yolo
+# https://www.arqbackup.com/

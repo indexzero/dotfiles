@@ -64,7 +64,7 @@ brew install --cask eul
 
 brew install --cask ghostty
 brew install fastfetch
-brew install ffmpeg
+brew install ffmpeg librsvg
 
 
 brew install withgraphite/tap/graphite
@@ -75,5 +75,11 @@ brew install pearcleaner
 brew install ripgrep
 
 brew install dust
+
+# For keyboard debugging
+# brew install --cask karabiner-elements
+# brew install --cask keycastr
+
+brew install pipx
 
 set +x;
