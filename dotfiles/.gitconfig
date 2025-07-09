@@ -38,3 +38,9 @@
   old = red bold
   new = green bold
   whitespace = red reverse
+[alias]
+  # commits with a “Co-authored-by: Claude <claude@anthropic.com>” trailer
+  cocl = "!f() { git commit \"$@\" --trailer \"Co-authored-by: Claude <claude@anthropic.com>\"; }; f"
+
+  # commits with a “Co-authored-by: Codex <codex@openai.com>” trailer
+  coco = "!f() { git commit \"$@\" --trailer \"Co-authored-by: Codex <codex@openai.com>\"; }; f"
