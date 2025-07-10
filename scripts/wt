@@ -1,0 +1,37 @@
+# Function to create a git worktree
+function wt() {
+  if [ $# -ne 1 ]; then
+    echo "Usage: wtn <branch-name>"
+    return 1
+  fi
+
+  local branch=$1
+  local current_dir=$(pwd)
+  local project_name=$(basename "$current_dir")
+  local worktree_base="../${project_name}-worktrees"
+  local worktree_dir="$worktree_base/$branch"
+
+  # Create worktrees directory if it doesn't exist
+  mkdir -p "$worktree_base"
+
+  # Check if branch exists
+  if git show-ref --verify --quiet "refs/heads/$branch"; then
+    echo "Branch '$branch' exists. Creating worktree at $worktree_dir..."
+    git worktree add "$worktree_dir" "$branch"
+  else
+    echo "Branch '$branch' doesn't exist. Creating new branch and worktree at $worktree_dir..."
+    git worktree add -b "$branch" "$worktree_dir"
+  fi
+
+  if [ $? -ne 0 ]; then
+    echo "Failed to create worktree."
+    return 1
+  fi
+
+  echo ""
+  echo "Worktree created successfully at: $worktree_dir"
+  echo "Changing to worktree directory and starting Claude..."
+
+  # Change to the worktree directory
+  cd "$worktree_dir"
+}

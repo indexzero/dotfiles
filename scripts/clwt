@@ -1,0 +1,63 @@
+# Function to create a git worktree with Claude files
+function clwt() {
+  if [ $# -ne 1 ]; then
+    echo "Usage: claude-worktree <branch-name>"
+    return 1
+  fi
+
+  local branch=$1
+  local current_dir=$(pwd)
+  local project_name=$(basename "$current_dir")
+  local worktree_base="../${project_name}-worktrees"
+  local worktree_dir="$worktree_base/$branch"
+
+  # Create worktrees directory if it doesn't exist
+  mkdir -p "$worktree_base"
+
+  # Check if branch exists
+  if git show-ref --verify --quiet "refs/heads/$branch"; then
+    echo "Branch '$branch' exists. Creating worktree at $worktree_dir..."
+    git worktree add "$worktree_dir" "$branch"
+  else
+    echo "Branch '$branch' doesn't exist. Creating new branch and worktree at $worktree_dir..."
+    git worktree add -b "$branch" "$worktree_dir"
+  fi
+
+  if [ $? -ne 0 ]; then
+    echo "Failed to create worktree."
+    return 1
+  fi
+
+  # Copy Claude-specific files that might be in .git/info/exclude
+  echo "Copying Claude files to worktree..."
+
+  # Copy CLAUDE.md files
+  find . -name "CLAUDE.md" -not -path "./.git/*" -not -path "$worktree_dir/*" | while read -r file; do
+    local dest_dir="$worktree_dir/$(dirname "$file")"
+    mkdir -p "$dest_dir"
+    cp "$file" "$dest_dir/"
+    echo "  Copied: $file"
+  done
+
+  # Copy claude-*.md files
+  find . -name "claude-*.md" -not -path "./.git/*" -not -path "$worktree_dir/*" | while read -r file; do
+    cp "$file" "$worktree_dir/"
+    echo "  Copied: $file"
+  done
+
+  # Copy .claude directory if it exists
+  if [ -d ".claude" ]; then
+    cp -r .claude "$worktree_dir/"
+    echo "  Copied: .claude directory"
+  fi
+
+  echo ""
+  echo "Worktree created successfully at: $worktree_dir"
+  echo "Changing to worktree directory and starting Claude..."
+
+  # Change to the worktree directory
+  cd "$worktree_dir"
+
+  # Start Claude
+  claude
+}
