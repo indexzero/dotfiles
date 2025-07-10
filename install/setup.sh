@@ -44,6 +44,7 @@ fi
 
 move_files "../dotfiles"
 move_files "../scripts" ".scripts"
+move_files "../fns" ".fns"
 
 echo "Sourcing ~/.zshrc"
 source $HOME/.zshrc

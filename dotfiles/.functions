@@ -114,3 +114,12 @@ function git-origin-all-branches() {
 
   git pull --all
 }
+
+# Source all function files from ~/.fns
+if [ -d "$HOME/.fns" ]; then
+  for fn_file in "$HOME/.fns"/*; do
+    if [ -f "$fn_file" ]; then
+      source "$fn_file"
+    fi
+  done
+fi

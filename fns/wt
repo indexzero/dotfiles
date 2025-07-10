@@ -30,7 +30,7 @@ function wt() {
 
   echo ""
   echo "Worktree created successfully at: $worktree_dir"
-  echo "Changing to worktree directory and starting Claude..."
+  echo "Changing to worktree directory..."
 
   # Change to the worktree directory
   cd "$worktree_dir"
