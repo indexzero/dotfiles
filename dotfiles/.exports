@@ -52,3 +52,10 @@ export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 # GO FOR THE GO GODS
 # 
 export PATH="$HOME/go/bin:$PATH"
+
+#
+# BUN FOR THE BUN GODS
+#
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"

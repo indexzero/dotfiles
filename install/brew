@@ -82,4 +82,10 @@ brew install dust
 
 brew install pipx
 
+# nb, you know for the claude
+brew install xwmx/taps/nb
+
+brew install zig
+
 set +x;
+
