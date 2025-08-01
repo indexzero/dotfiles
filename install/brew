@@ -51,7 +51,6 @@ brew install mongodb-community
 # Or, if you don't want/need a background service you can just run:
 #   mongod --config /usr/local/etc/mongod.conf
 
-brew tap espanso/espanso
 brew install espanso
 
 # Also sips
