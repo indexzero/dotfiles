@@ -88,3 +88,8 @@ brew install zig
 
 set +x;
 
+# Experimental
+brew install --cask warp
+
+# Experimental
+brew install --cask ghostty
