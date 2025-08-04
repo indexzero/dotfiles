@@ -1,0 +1,27 @@
+# Protip theme - converted from macOS Terminal.app Protip.terminal
+# Dark theme with black background
+
+background = #000000
+foreground = #f1f1f1
+cursor-color = #4d4d4d
+cursor-text = #000000
+selection-background = #414141
+selection-foreground = #f1f1f1
+
+# Standard ANSI colors (using typical dark theme palette)
+palette = 0=#000000
+palette = 1=#ff5f5f
+palette = 2=#5fff5f
+palette = 3=#ffff5f
+palette = 4=#5f5fff
+palette = 5=#ff5fff
+palette = 6=#5fffff
+palette = 7=#d7d7d7
+palette = 8=#4d4d4d
+palette = 9=#ff8787
+palette = 10=#87ff87
+palette = 11=#ffff87
+palette = 12=#8787ff
+palette = 13=#ff87ff
+palette = 14=#87ffff
+palette = 15=#ffffff
