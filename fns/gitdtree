@@ -1,0 +1,29 @@
+gitdtree() {
+  local base_dir="$1"
+
+  if [[ ! -d "$base_dir" ]]; then
+    echo "Directory not found: $base_dir"
+    return 1
+  fi
+
+  for gitdir in $base_dir/*(/); do
+    # Skip worktree directories
+    if [[ ! -d "$gitdir/.git" ]]; then
+      continue
+    fi
+
+    repo_dir="${gitdir%/.git}"
+    relative_path="${repo_dir#$base_dir/}"
+    changes=$(git -C "$repo_dir" status --short)
+
+    if [[ -n "$changes" ]]; then
+      echo "├─🔸$relative_path"
+      # Print each line of changes indented with │   └──
+      echo "$changes" | while read -r line; do
+        echo "│   └── $line"
+      done
+    else
+      echo "├── $relative_path"
+    fi
+  done
+}
