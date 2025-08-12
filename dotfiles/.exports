@@ -63,3 +63,9 @@ export PATH="$HOME/go/bin:$PATH"
 [ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
+
+#
+# Disable telemetry for everything that supports it
+# (e.g. claude)
+#
+export DISABLE_TELEMETRY=1
