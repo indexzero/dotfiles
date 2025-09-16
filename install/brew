@@ -35,8 +35,9 @@ brew install tectonic
 brew install poppler
 brew install latexindent
 
-# Diagrams
+# Diagrams & Gifs
 brew install d2
+brew install vhs
 
 brew install mysql
 # brew services start mysql
