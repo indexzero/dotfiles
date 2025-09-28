@@ -171,3 +171,6 @@ if [ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]; then . "$HOME/google-clou
 
 export GITHUB_TOKEN=$(gh auth token)
 export PATH="$PATH:$HOME/go/bin"
+. "$HOME/.atuin/bin/env"
+
+eval "$(atuin init zsh)"
