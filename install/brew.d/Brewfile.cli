@@ -1,0 +1,12 @@
+# Command Line Utilities
+
+brew "tree"
+brew "bat"
+brew "exa"
+brew "fd"
+brew "fzf"
+brew "coreutils"
+brew "duf"
+brew "dust"
+brew "ccat"
+brew "xsv"

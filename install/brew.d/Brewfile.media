@@ -1,0 +1,5 @@
+# Media Processing
+
+brew "imagemagick"
+brew "ffmpeg"
+brew "librsvg"
