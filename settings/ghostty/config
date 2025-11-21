@@ -56,7 +56,7 @@ theme = synthwave
 # theme = Mathias
 
 shell-integration = zsh
-scrollback-limit = 0
+scrollback-limit = 4294967295
 
 # ghostty +show-config --default | grep window | pbcopy
 # =============
