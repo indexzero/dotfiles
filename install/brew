@@ -1,85 +1,92 @@
 #!/bin/zsh
 
-#
-# Check https://brew.sh/ for latest
-#
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-/bin/bash -c "eval \"$(/opt/homebrew/bin/brew shellenv)\""
+# Homebrew installation and setup script
+# Uses Brewfiles organized by concern in brew.d/
 
-set -x;
+set -e
 
-# - Run these two commands in your terminal to add Homebrew to your PATH:
-echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $HOME/.zprofile
-eval "$(/opt/homebrew/bin/brew shellenv)"
+echo "Setting up Homebrew and installing packages..."
 
-brew install gh
-brew install ccat
-brew install tree
-brew install xsv
-brew install gcc
-brew install git-lfs
-brew install cointop
-brew install bat
-brew install exa
-brew install diff-so-fancy
-brew install fzf
-# https://github.com/sharkdp/fd
-brew install fd
-brew install duf
-brew install coreutils
-brew install cmake
-brew install pyenv
+# Check if Homebrew is installed
+if ! command -v brew &> /dev/null; then
+    echo "Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# All for LaTeX
-brew install tectonic
-brew install poppler
-brew install latexindent
+    # Add Homebrew to PATH
+    echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $HOME/.zprofile
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+else
+    echo "Homebrew is already installed"
+fi
 
-# Diagrams
-brew install d2
+# Update Homebrew
+echo "Updating Homebrew..."
+brew update
 
-brew install mysql
-# brew services start mysql
-# brew services restart mysql
-# brew services stop mysql
-brew install postgresql
+# Get the directory of this script
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-brew tap mongodb/brew
-brew install mongodb-community
-# To start mongodb/brew/mongodb-community now and restart at login:
-#   brew services start mongodb/brew/mongodb-community
-# Or, if you don't want/need a background service you can just run:
-#   mongod --config /usr/local/etc/mongod.conf
+# Parse command line options
+CATEGORY=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --category|-c)
+            CATEGORY="$2"
+            shift 2
+            ;;
+        --help|-h)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  --category, -c <category>  Install specific category (dev, cli, vcs, etc.)"
+            echo "  --help, -h                 Show this help message"
+            echo ""
+            echo "Categories:"
+            echo "  dev          - Development tools"
+            echo "  vcs          - Version control systems"
+            echo "  cli          - Command line utilities"
+            echo "  docs         - Documentation & visualization"
+            echo "  databases    - Database systems"
+            echo "  media        - Media processing"
+            echo "  system       - System utilities"
+            echo "  network      - Network & security"
+            echo "  productivity - Productivity apps"
+            echo "  terminals    - Terminal emulators"
+            echo ""
+            echo "Without options, installs everything from all categories."
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
 
-brew tap espanso/espanso
-brew install espanso
+# Install from Brewfiles
+if [[ -n "$CATEGORY" ]]; then
+    BREWFILE="$SCRIPT_DIR/brew.d/Brewfile.$CATEGORY"
+    if [[ -f "$BREWFILE" ]]; then
+        echo "Installing packages from $CATEGORY category..."
+        brew bundle --file="$BREWFILE"
+    else
+        echo "Error: Category '$CATEGORY' not found"
+        echo "Available categories: dev, vcs, cli, docs, databases, media, system, network, productivity, terminals"
+        exit 1
+    fi
+else
+    echo "Installing all packages from Brewfiles..."
+    brew bundle --file="$SCRIPT_DIR/brew.d/Brewfile"
+fi
 
-# Also sips
-# https://rachelrly.medium.com/how-to-compress-images-in-the-mac-terminal-57f8ddd11926
-brew install imagemagick
-
-brew install charmbracelet/tap/freeze
-brew install only-switch
-brew install --cask eul
-
-brew install --cask ghostty
-brew install fastfetch
-brew install ffmpeg librsvg
-
-
-brew install withgraphite/tap/graphite
-
-brew install pearcleaner
-
-# Used by Claude Code
-brew install ripgrep
-
-brew install dust
-
-# For keyboard debugging
-# brew install --cask karabiner-elements
-# brew install --cask keycastr
-
-brew install pipx
-
-set +x;
+echo "Installation complete!"
+echo ""
+echo "To install specific categories only, run:"
+echo "  $0 --category dev"
+echo "  $0 --category cli"
+echo "  etc."
+echo ""
+echo "Database services notes:"
+echo "  MySQL: brew services start mysql"
+echo "  PostgreSQL: brew services start postgresql"
+echo "  MongoDB: brew services start mongodb/brew/mongodb-community"

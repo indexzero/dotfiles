@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+# Install atuin - magical shell history
+curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh

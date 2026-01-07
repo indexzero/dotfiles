@@ -1,0 +1,91 @@
+# This is the configuration file for Ghostty.
+#
+# This template file has been automatically created at the following
+# path since Ghostty couldn't find any existing config files on your system:
+#
+#   $HOME/Library/Application Support/com.mitchellh.ghostty/config
+#
+# The template does not set any default options, since Ghostty ships
+# with sensible defaults for all options. Users should only need to set
+# options that they want to change from the default.
+#
+# Run `ghostty +show-config --default --docs` to view a list of
+# all available config options and their default values.
+#
+# Additionally, each config option is also explained in detail
+# on Ghostty's website, at https://ghostty.org/docs/config.
+
+# Config syntax crash course
+# ==========================
+# # The config file consists of simple key-value pairs,
+# # separated by equals signs.
+# font-family = Iosevka
+# window-padding-x = 2
+#
+# # Spacing around the equals sign does not matter.
+# # All of these are identical:
+# key=value
+# key= value
+# key =value
+# key = value
+#
+# # Any line beginning with a # is a comment. It's not possible to put
+# # a comment after a config option, since it would be interpreted as a
+# # part of the value. For example, this will have a value of "#123abc":
+# background = #123abc
+#
+# # Empty values are used to reset config keys to default.
+# key =
+#
+# # Some config options have unique syntaxes for their value,
+# # which is explained in the docs for that config option.
+# # Just for example:
+# resize-overlay-duration = 4s 200ms
+
+# Font family
+# ============
+# This can be a single font family, or a comma-separated list of font families.
+# Ghostty will try to use the first available font from the list. If the font family
+# is not available, Ghostty will fall back to the default font, "Iosevka".
+font-family = "Menlo"
+font-size = 24
+
+# Theme
+# ============
+theme = synthwave
+# theme = Mathias
+
+shell-integration = zsh
+scrollback-limit = 4294967295
+
+# ghostty +show-config --default | grep window | pbcopy
+# =============
+# keybind = super+shift+w=close_window
+# keybind = super+n=new_window
+# keybind = super+alt+shift+w=close_all_windows
+# window-padding-x = 2
+# window-padding-y = 2
+# window-padding-balance = false
+# window-padding-color = background
+# window-vsync = true
+# window-inherit-working-directory = true
+# window-inherit-font-size = true
+# window-decoration = auto
+# window-title-font-family = 
+# window-subtitle = false
+# window-theme = auto
+# window-colorspace = srgb
+# window-height = 0
+# window-width = 0
+# window-position-x = 
+# window-position-y = 
+# window-save-state = default
+# window-step-resize = false
+# window-new-tab-position = current
+# window-titlebar-background = 
+# window-titlebar-foreground = 
+# quit-after-last-window-closed = false
+# quit-after-last-window-closed-delay = 
+# initial-window = true
+# macos-window-shadow = true
+keybind = shift+enter=text:\x1b\r

@@ -1,6 +1,10 @@
 #
-# Some sane exports
+# Some sane exports. Let's start with XDG
 #
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/Library/Preferences}"
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/Library/Caches}"
+export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/Library/Application Support}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/Library/State}"
 
 if [[ $COLORTERM = gnome-* && $TERM = xterm ]] && infocmp gnome-256color >/dev/null 2>&1; then
   export TERM=gnome-256color
@@ -52,3 +56,21 @@ export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 # GO FOR THE GO GODS
 # 
 export PATH="$HOME/go/bin:$PATH"
+
+#
+# BUN FOR THE BUN GODS
+#
+[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+#
+# Disable telemetry for everything that supports it
+# (e.g. claude)
+#
+export DISABLE_TELEMETRY=1
+
+#
+# Claude bash settings
+#
+export CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1

@@ -1,0 +1,43 @@
+#!/bin/zsh
+
+# wtgo - Change directory to a git worktree using git gtr
+# Usage: wtgo <worktree>
+# Must be sourced, not executed directly
+
+if [ -z "$1" ]; then
+  echo "usage: wtgo <worktree>"
+  echo ""
+  echo "Changes directory to the specified git worktree using 'git gtr go'"
+  return 1 2>/dev/null || exit 1
+fi
+
+# Get the output from git gtr go
+GTR_OUTPUT=$(git gtr go "$1" 2>&1)
+
+# Check if the command was successful (error messages start with [x])
+if [[ "$GTR_OUTPUT" == "["*"]"* ]]; then
+  # Error message from git gtr
+  echo "$GTR_OUTPUT"
+  return 1 2>/dev/null || exit 1
+fi
+
+# Extract the path from the output - look for a line starting with /
+WORKTREE_PATH=$(echo "$GTR_OUTPUT" | grep '^/' | head -n 1)
+
+# If no path found, something went wrong
+if [ -z "$WORKTREE_PATH" ]; then
+  echo "[x] Could not extract worktree path from git gtr output"
+  echo "Output was:"
+  echo "$GTR_OUTPUT"
+  return 1 2>/dev/null || exit 1
+fi
+
+# Check if the path exists
+if [ ! -d "$WORKTREE_PATH" ]; then
+  echo "[x] Directory not found: $WORKTREE_PATH"
+  return 1 2>/dev/null || exit 1
+fi
+
+# Change to the worktree directory
+cd "$WORKTREE_PATH"
+echo "Changed to worktree: $WORKTREE_PATH"

@@ -11,6 +11,9 @@ alias emptytrash="find $HOME/.Trash -not -path $HOME/.Trash -exec rm -rf {} \; 2
 alias ghcd=". ghi"
 alias cat="ccat"
 
+# git worktree navigation
+alias wtgo=". wtgo"
+
 # bitbucket
 alias bh="GIT_REMOTE="bitbucket.org" GIT_ROOT="Bitbucket" . ghi"
 

@@ -1,0 +1,37 @@
+# Main Brewfile - Includes all categorized Brewfiles
+#
+# Usage:
+#   Install everything: brew bundle --file=install/brew.d/Brewfile
+#   Install specific category: brew bundle --file=install/brew.d/Brewfile.dev
+#
+# To install only specific categories, comment out the unwanted instances below
+
+# Development Tools
+instance_eval(File.read("#{__dir__}/Brewfile.dev"))
+
+# Version Control Systems
+instance_eval(File.read("#{__dir__}/Brewfile.vcs"))
+
+# Command Line Utilities
+instance_eval(File.read("#{__dir__}/Brewfile.cli"))
+
+# Documentation & Visualization
+instance_eval(File.read("#{__dir__}/Brewfile.docs"))
+
+# Databases
+instance_eval(File.read("#{__dir__}/Brewfile.databases"))
+
+# Media Processing
+instance_eval(File.read("#{__dir__}/Brewfile.media"))
+
+# System Utilities
+instance_eval(File.read("#{__dir__}/Brewfile.system"))
+
+# Network & Security
+instance_eval(File.read("#{__dir__}/Brewfile.network"))
+
+# Productivity Applications
+instance_eval(File.read("#{__dir__}/Brewfile.productivity"))
+
+# Terminal Emulators
+instance_eval(File.read("#{__dir__}/Brewfile.terminals"))

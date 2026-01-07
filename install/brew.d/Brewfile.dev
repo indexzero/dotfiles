@@ -1,0 +1,13 @@
+# Development Tools
+
+tap "unhappychoice/tap"
+
+brew "gcc"
+brew "cmake"
+brew "pyenv"
+brew "pipx"
+brew "zig"
+brew "ripgrep"
+brew "ast-grep"
+brew "diff-so-fancy"
+brew "gitlogue"

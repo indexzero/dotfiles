@@ -1,0 +1,8 @@
+# Databases
+
+brew "mysql"
+brew "postgresql"
+
+# MongoDB
+tap "mongodb/brew"
+brew "mongodb-community"

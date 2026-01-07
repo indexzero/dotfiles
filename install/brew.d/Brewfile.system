@@ -1,0 +1,6 @@
+# System Utilities
+
+brew "fastfetch"
+brew "only-switch"
+brew "pearcleaner"
+cask "eul"

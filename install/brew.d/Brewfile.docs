@@ -1,0 +1,12 @@
+# Documentation & Visualization
+
+# LaTeX tools
+brew "tectonic"
+brew "poppler"
+brew "latexindent"
+
+# Diagrams and recordings
+brew "d2"
+brew "vhs"
+tap "charmbracelet/tap"
+brew "charmbracelet/tap/freeze"

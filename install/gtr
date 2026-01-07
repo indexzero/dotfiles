@@ -1,0 +1,7 @@
+
+ghcd coderabbitai/git-worktree-runner
+
+sudo ln -s "$(pwd)/bin/git-gtr" /usr/local/bin/git-gtr
+
+git gtr config set gtr.editor.default code
+git gtr config set gtr.editor.default claude
