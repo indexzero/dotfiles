@@ -88,3 +88,4 @@ scrollback-limit = 4294967295
 # quit-after-last-window-closed-delay = 
 # initial-window = true
 # macos-window-shadow = true
+keybind = shift+enter=text:\x1b\r
