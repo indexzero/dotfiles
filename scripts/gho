@@ -1,16 +1,26 @@
 #!/bin/zsh
 
-if [ -z "$PWD" ]; then
-  PWD="`pwd`"
-fi
-
-if [ -z $GIT_REMOTE ]; then
+if [ -z "$GIT_REMOTE" ]; then
   GIT_REMOTE="github.com"
 fi
 
-BASE_DIR="`dirname $PWD`"
-GIT_REPO="`basename $PWD`"
-GIT_USER="`basename $BASE_DIR`"
+if [ -z "$GIT_ROOT" ]; then
+  GIT_ROOT="Git"
+fi
+
+GIT_DIR="$HOME/$GIT_ROOT"
+
+# Get path relative to GIT_DIR
+REL_PATH="${PWD#$GIT_DIR/}"
+
+# Split the relative path into components
+IFS='/' read -A PARTS <<< "$REL_PATH"
+GIT_USER="${PARTS[1]}"
+GIT_REPO="${PARTS[2]}"
+
+# Handle worktree directories: strip -worktrees suffix
+GIT_REPO="${GIT_REPO%-worktrees}"
+
 GIT_URL="https://$GIT_REMOTE/$GIT_USER/$GIT_REPO/"
 
 echo "open \"$GIT_URL\""
