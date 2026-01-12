@@ -10,3 +10,7 @@ brew "d2"
 brew "vhs"
 tap "charmbracelet/tap"
 brew "charmbracelet/tap/freeze"
+
+# PDF tools
+brew "pandoc"
+brew "qpdf"
