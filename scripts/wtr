@@ -1,0 +1,82 @@
+#!/bin/zsh
+
+# wtr - Navigate between git worktrees and main repo
+# Usage: wtr [worktree-name | 1 | list]
+#   wtr           - go to main repo
+#   wtr 1         - go to main repo (git gtr compat)
+#   wtr <name>    - go to worktree by folder name
+#   wtr list      - list available worktrees
+# Must be sourced, not executed directly
+
+if [ -z "$GIT_ROOT" ]; then
+  GIT_ROOT="Git"
+fi
+
+GIT_DIR="$HOME/$GIT_ROOT"
+
+# Get path relative to GIT_DIR
+REL_PATH="${PWD#$GIT_DIR/}"
+
+# Split the relative path into components
+IFS='/' read -A PARTS <<< "$REL_PATH"
+GIT_ORG="${PARTS[1]}"
+GIT_REPO="${PARTS[2]}"
+
+# Determine if we're in a worktree or main repo
+if [[ "$GIT_REPO" == *-worktrees ]]; then
+  # We're in a worktree directory
+  MAIN_REPO="${GIT_REPO%-worktrees}"
+  WORKTREES_DIR="$GIT_DIR/$GIT_ORG/$GIT_REPO"
+else
+  # We're in the main repo or somewhere else
+  MAIN_REPO="$GIT_REPO"
+  WORKTREES_DIR="$GIT_DIR/$GIT_ORG/${MAIN_REPO}-worktrees"
+fi
+
+MAIN_REPO_DIR="$GIT_DIR/$GIT_ORG/$MAIN_REPO"
+
+# Handle arguments
+case "$1" in
+  ""|1)
+    # Go to main repo
+    if [ ! -d "$MAIN_REPO_DIR" ]; then
+      echo "[x] Main repo not found: $MAIN_REPO_DIR"
+      return 1 2>/dev/null || exit 1
+    fi
+    cd "$MAIN_REPO_DIR"
+    echo "Main repo: $MAIN_REPO_DIR"
+    ;;
+  list)
+    # List available worktrees
+    echo "Main repo:"
+    echo "  1  $MAIN_REPO_DIR"
+    echo ""
+    if [ -d "$WORKTREES_DIR" ]; then
+      echo "Worktrees:"
+      for wt in "$WORKTREES_DIR"/*(N/); do
+        echo "  $(basename "$wt")  $wt"
+      done
+    else
+      echo "No worktrees directory found"
+    fi
+    ;;
+  *)
+    # Go to specific worktree
+    WORKTREE_PATH="$WORKTREES_DIR/$1"
+    if [ ! -d "$WORKTREE_PATH" ]; then
+      echo "[x] Worktree not found: $WORKTREE_PATH"
+      echo ""
+      echo "Available worktrees:"
+      if [ -d "$WORKTREES_DIR" ]; then
+        for wt in "$WORKTREES_DIR"/*(N/); do
+          echo "  $(basename "$wt")"
+        done
+      else
+        echo "  (none)"
+      fi
+      return 1 2>/dev/null || exit 1
+    fi
+    cd "$WORKTREE_PATH"
+    echo "Worktree: $WORKTREE_PATH"
+    ;;
+esac
