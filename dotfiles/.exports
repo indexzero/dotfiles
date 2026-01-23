@@ -69,8 +69,11 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 # (e.g. claude)
 #
 export DISABLE_TELEMETRY=1
+export DISABLE_ERROR_REPORTING=1
+export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 
 #
 # Claude bash settings
 #
 export CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1
+export PATH="$HOME/.local/bin:$PATH"
