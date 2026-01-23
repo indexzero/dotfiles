@@ -1,0 +1,438 @@
+#!/bin/bash
+#
+# bonsai.sh - Branch Pruning Analysis Tool
+#
+# Analyzes local git branches and categorizes them as:
+#   ARESAFE   - Branch does not exist on remote AND matches a merged/closed PR
+#   MAYBESAFE - Branch does not exist on remote AND no matching PR found
+#
+# Like a bonsai gardener, we carefully examine which branches can be pruned.
+#
+# Usage: bonsai.sh [OPTIONS]
+#
+# Options:
+#   --no-fetch    Skip fetching from origin (uses existing remote refs)
+#   --json        Output in JSON format
+#   --help        Show this help message
+#
+
+set -euo pipefail
+
+# -----------------------------------------------------------------------------
+# Configuration
+# -----------------------------------------------------------------------------
+
+FETCH_ENABLED=true
+JSON_OUTPUT=false
+PR_LIMIT=10000
+
+# Temp files for data (portable approach avoiding bash 4+ associative arrays)
+TMPDIR="${TMPDIR:-/tmp}"
+TMP_LOCAL=$(mktemp "${TMPDIR}/bonsai-local.XXXXXX")
+TMP_REMOTE=$(mktemp "${TMPDIR}/bonsai-remote.XXXXXX")
+TMP_PR=$(mktemp "${TMPDIR}/bonsai-pr.XXXXXX")
+TMP_WORKTREE=$(mktemp "${TMPDIR}/bonsai-worktree.XXXXXX")
+TMP_ARESAFE=$(mktemp "${TMPDIR}/bonsai-aresafe.XXXXXX")
+TMP_MAYBESAFE=$(mktemp "${TMPDIR}/bonsai-maybesafe.XXXXXX")
+TMP_ARESAFE_WT=$(mktemp "${TMPDIR}/bonsai-aresafe-wt.XXXXXX")
+TMP_MAYBESAFE_WT=$(mktemp "${TMPDIR}/bonsai-maybesafe-wt.XXXXXX")
+
+cleanup() {
+  rm -f "$TMP_LOCAL" "$TMP_REMOTE" "$TMP_PR" "$TMP_WORKTREE"
+  rm -f "$TMP_ARESAFE" "$TMP_MAYBESAFE" "$TMP_ARESAFE_WT" "$TMP_MAYBESAFE_WT"
+}
+trap cleanup EXIT
+
+# Colors (disabled if not TTY)
+if [[ -t 1 ]]; then
+  GREEN='\033[0;32m'
+  YELLOW='\033[0;33m'
+  RED='\033[0;31m'
+  BLUE='\033[0;34m'
+  CYAN='\033[0;36m'
+  BOLD='\033[1m'
+  DIM='\033[2m'
+  NC='\033[0m' # No Color
+else
+  GREEN='' YELLOW='' RED='' BLUE='' CYAN='' BOLD='' DIM='' NC=''
+fi
+
+# -----------------------------------------------------------------------------
+# Helper Functions
+# -----------------------------------------------------------------------------
+
+die() {
+  echo -e "${RED}Error:${NC} $1" >&2
+  exit 1
+}
+
+info() {
+  if [[ "$JSON_OUTPUT" == "false" ]]; then
+    echo -e "${DIM}$1${NC}" >&2
+  fi
+}
+
+# Check if a value exists in a file (one value per line)
+in_file() {
+  local value="$1"
+  local file="$2"
+  grep -qxF "$value" "$file" 2>/dev/null
+}
+
+# Get worktree path for a branch (empty if not in worktree)
+get_worktree_path() {
+  local branch="$1"
+  grep "^${branch}:" "$TMP_WORKTREE" 2>/dev/null | cut -d: -f2- || true
+}
+
+# -----------------------------------------------------------------------------
+# Dependency Checks
+# -----------------------------------------------------------------------------
+
+check_dependencies() {
+  local missing=""
+
+  command -v git >/dev/null 2>&1 || missing="$missing git"
+  command -v gh >/dev/null 2>&1 || missing="$missing gh"
+  command -v jq >/dev/null 2>&1 || missing="$missing jq"
+
+  if [[ -n "$missing" ]]; then
+    die "Missing required dependencies:$missing"
+  fi
+
+  # Check gh auth
+  if ! gh auth status >/dev/null 2>&1; then
+    die "GitHub CLI not authenticated. Run 'gh auth login' first."
+  fi
+}
+
+check_git_repo() {
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    die "Not inside a git repository"
+  fi
+
+  if ! git remote get-url origin >/dev/null 2>&1; then
+    die "No 'origin' remote found"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Data Collection Functions
+# -----------------------------------------------------------------------------
+
+get_local_branches() {
+  git for-each-ref --format='%(refname:short)' refs/heads/
+}
+
+get_remote_branches() {
+  git for-each-ref --format='%(refname:short)' refs/remotes/origin/ \
+    | sed 's|^origin/||' \
+    | grep -v '^HEAD$' || true
+}
+
+get_merged_closed_pr_branches() {
+  # Get all non-open PRs and extract their head branch names
+  gh pr list --state all --json headRefName,state --limit "$PR_LIMIT" 2>/dev/null \
+    | jq -r '.[] | select(.state == "MERGED" or .state == "CLOSED") | .headRefName' \
+    || true
+}
+
+get_worktree_info() {
+  # Returns "branch:path" pairs for each worktree
+  local worktree_path=""
+
+  git worktree list --porcelain | while IFS= read -r line; do
+    case "$line" in
+      "worktree "*)
+        worktree_path="${line#worktree }"
+        ;;
+      "branch "*)
+        local branch="${line#branch refs/heads/}"
+        echo "$branch:$worktree_path"
+        ;;
+    esac
+  done
+}
+
+# -----------------------------------------------------------------------------
+# Main Analysis
+# -----------------------------------------------------------------------------
+
+analyze_branches() {
+  info "Collecting branch data..."
+
+  # Fetch if enabled
+  if [[ "$FETCH_ENABLED" == "true" ]]; then
+    info "Fetching from origin with prune..."
+    git fetch --prune origin >/dev/null 2>&1 || die "Failed to fetch from origin"
+  fi
+
+  # Collect data into temp files
+  info "Getting local branches..."
+  get_local_branches > "$TMP_LOCAL"
+
+  info "Getting remote branches..."
+  get_remote_branches > "$TMP_REMOTE"
+
+  info "Querying GitHub for merged/closed PRs..."
+  get_merged_closed_pr_branches | sort -u > "$TMP_PR"
+
+  info "Getting worktree info..."
+  get_worktree_info > "$TMP_WORKTREE"
+
+  # Get current branch
+  local current_branch
+  current_branch=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+
+  # Categorize branches
+  info "Analyzing branches..."
+
+  while IFS= read -r branch; do
+    [[ -z "$branch" ]] && continue
+
+    # Skip if exists on remote
+    if in_file "$branch" "$TMP_REMOTE"; then
+      continue
+    fi
+
+    local worktree_path
+    worktree_path=$(get_worktree_path "$branch")
+
+    if in_file "$branch" "$TMP_PR"; then
+      # ARESAFE - matches merged/closed PR
+      if [[ -n "$worktree_path" ]]; then
+        echo "$branch:$worktree_path" >> "$TMP_ARESAFE_WT"
+      else
+        echo "$branch" >> "$TMP_ARESAFE"
+      fi
+    else
+      # MAYBESAFE - no matching PR
+      if [[ -n "$worktree_path" ]]; then
+        echo "$branch:$worktree_path" >> "$TMP_MAYBESAFE_WT"
+      else
+        echo "$branch" >> "$TMP_MAYBESAFE"
+      fi
+    fi
+  done < "$TMP_LOCAL"
+
+  # Output results
+  if [[ "$JSON_OUTPUT" == "true" ]]; then
+    output_json
+  else
+    output_text "$current_branch"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Output Functions
+# -----------------------------------------------------------------------------
+
+output_json() {
+  # Build JSON using jq - handle empty files gracefully
+  local aresafe_json maybesafe_json aresafe_wt_json maybesafe_wt_json
+
+  if [[ -s "$TMP_ARESAFE" ]]; then
+    aresafe_json=$(jq -R . < "$TMP_ARESAFE" | jq -s .)
+  else
+    aresafe_json="[]"
+  fi
+
+  if [[ -s "$TMP_MAYBESAFE" ]]; then
+    maybesafe_json=$(jq -R . < "$TMP_MAYBESAFE" | jq -s .)
+  else
+    maybesafe_json="[]"
+  fi
+
+  if [[ -s "$TMP_ARESAFE_WT" ]]; then
+    aresafe_wt_json=$(jq -R . < "$TMP_ARESAFE_WT" | jq -s .)
+  else
+    aresafe_wt_json="[]"
+  fi
+
+  if [[ -s "$TMP_MAYBESAFE_WT" ]]; then
+    maybesafe_wt_json=$(jq -R . < "$TMP_MAYBESAFE_WT" | jq -s .)
+  else
+    maybesafe_wt_json="[]"
+  fi
+
+  jq -n \
+    --argjson aresafe "$aresafe_json" \
+    --argjson maybesafe "$maybesafe_json" \
+    --argjson aresafe_in_worktree "$aresafe_wt_json" \
+    --argjson maybesafe_in_worktree "$maybesafe_wt_json" \
+    '{
+      ARESAFE: $aresafe,
+      MAYBESAFE: $maybesafe,
+      ARESAFE_IN_WORKTREE: $aresafe_in_worktree,
+      MAYBESAFE_IN_WORKTREE: $maybesafe_in_worktree
+    }'
+}
+
+output_text() {
+  local current_branch="${1:-}"
+
+  # Count entries
+  local aresafe_count=0 maybesafe_count=0 aresafe_wt_count=0 maybesafe_wt_count=0
+  [[ -s "$TMP_ARESAFE" ]] && aresafe_count=$(wc -l < "$TMP_ARESAFE" | tr -d ' ')
+  [[ -s "$TMP_MAYBESAFE" ]] && maybesafe_count=$(wc -l < "$TMP_MAYBESAFE" | tr -d ' ')
+  [[ -s "$TMP_ARESAFE_WT" ]] && aresafe_wt_count=$(wc -l < "$TMP_ARESAFE_WT" | tr -d ' ')
+  [[ -s "$TMP_MAYBESAFE_WT" ]] && maybesafe_wt_count=$(wc -l < "$TMP_MAYBESAFE_WT" | tr -d ' ')
+
+  echo ""
+  echo -e "${BOLD}${GREEN}BONSAI${NC} - Branch Pruning Analysis"
+  echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo ""
+
+  # ARESAFE section
+  echo -e "${BOLD}${GREEN}ARESAFE${NC} ${DIM}(branch not on remote + PR was merged/closed)${NC}"
+  if [[ ! -s "$TMP_ARESAFE" ]]; then
+    echo -e "  ${DIM}(none)${NC}"
+  else
+    while IFS= read -r branch; do
+      local marker="  ${GREEN}✓${NC}"
+      [[ "$branch" == "$current_branch" ]] && marker="  ${GREEN}✓${NC} ${CYAN}*${NC}"
+      echo -e "$marker $branch"
+    done < "$TMP_ARESAFE"
+  fi
+
+  # ARESAFE in worktree
+  if [[ -s "$TMP_ARESAFE_WT" ]]; then
+    echo ""
+    echo -e "  ${YELLOW}In worktrees (cannot delete):${NC}"
+    while IFS= read -r item; do
+      local branch="${item%%:*}"
+      local path="${item#*:}"
+      echo -e "    ${GREEN}✓${NC} $branch ${DIM}-> $path${NC}"
+    done < "$TMP_ARESAFE_WT"
+  fi
+  echo ""
+
+  # MAYBESAFE section
+  echo -e "${BOLD}${YELLOW}MAYBESAFE${NC} ${DIM}(branch not on remote + no matching PR found)${NC}"
+  if [[ ! -s "$TMP_MAYBESAFE" ]]; then
+    echo -e "  ${DIM}(none)${NC}"
+  else
+    while IFS= read -r branch; do
+      local marker="  ${YELLOW}?${NC}"
+      [[ "$branch" == "$current_branch" ]] && marker="  ${YELLOW}?${NC} ${CYAN}*${NC}"
+      echo -e "$marker $branch"
+    done < "$TMP_MAYBESAFE"
+  fi
+
+  # MAYBESAFE in worktree
+  if [[ -s "$TMP_MAYBESAFE_WT" ]]; then
+    echo ""
+    echo -e "  ${YELLOW}In worktrees (cannot delete):${NC}"
+    while IFS= read -r item; do
+      local branch="${item%%:*}"
+      local path="${item#*:}"
+      echo -e "    ${YELLOW}?${NC} $branch ${DIM}-> $path${NC}"
+    done < "$TMP_MAYBESAFE_WT"
+  fi
+  echo ""
+
+  # Summary and commands
+  echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${BOLD}Summary:${NC}"
+  echo -e "  ARESAFE:   $aresafe_count deletable, $aresafe_wt_count in worktrees"
+  echo -e "  MAYBESAFE: $maybesafe_count deletable, $maybesafe_wt_count in worktrees"
+  echo ""
+
+  if [[ -s "$TMP_ARESAFE" ]]; then
+    echo -e "${BOLD}To delete ARESAFE branches:${NC}"
+    local branches
+    branches=$(tr '\n' ' ' < "$TMP_ARESAFE")
+    echo -e "  ${CYAN}git branch -D $branches${NC}"
+    echo ""
+  fi
+
+  if [[ -s "$TMP_MAYBESAFE" ]]; then
+    echo -e "${BOLD}To delete MAYBESAFE branches (review first!):${NC}"
+    local branches
+    branches=$(tr '\n' ' ' < "$TMP_MAYBESAFE")
+    echo -e "  ${CYAN}git branch -D $branches${NC}"
+    echo ""
+  fi
+
+  if [[ -n "$current_branch" ]]; then
+    echo -e "${DIM}${CYAN}*${NC}${DIM} = current branch${NC}"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# CLI Argument Parsing
+# -----------------------------------------------------------------------------
+
+show_help() {
+  cat << 'EOF'
+BONSAI - Branch Pruning Analysis Tool
+
+Analyzes local git branches and categorizes them for safe deletion.
+
+CATEGORIES:
+  ARESAFE   - Branch does not exist on remote origin AND matches a branch
+              name from a merged or closed GitHub PR. These are safe to delete.
+
+  MAYBESAFE - Branch does not exist on remote origin AND does NOT match any
+              merged/closed PR. Review these before deleting.
+
+USAGE:
+  bonsai.sh [OPTIONS]
+
+OPTIONS:
+  --no-fetch    Skip 'git fetch --prune origin' (use existing remote refs)
+  --json        Output results in JSON format
+  --help        Show this help message
+
+EXAMPLES:
+  # Analyze branches with fresh remote data
+  ./bonsai.sh
+
+  # Quick analysis without fetching
+  ./bonsai.sh --no-fetch
+
+  # Get JSON output for scripting
+  ./bonsai.sh --json
+
+REQUIREMENTS:
+  - git
+  - gh (GitHub CLI, authenticated)
+  - jq
+
+EOF
+}
+
+parse_args() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --no-fetch)
+        FETCH_ENABLED=false
+        shift
+        ;;
+      --json)
+        JSON_OUTPUT=true
+        shift
+        ;;
+      --help|-h)
+        show_help
+        exit 0
+        ;;
+      *)
+        die "Unknown option: $1 (use --help for usage)"
+        ;;
+    esac
+  done
+}
+
+# -----------------------------------------------------------------------------
+# Main Entry Point
+# -----------------------------------------------------------------------------
+
+main() {
+  parse_args "$@"
+  check_dependencies
+  check_git_repo
+  analyze_branches
+}
+
+main "$@"
