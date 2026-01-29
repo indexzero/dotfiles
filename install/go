@@ -1,0 +1,220 @@
+#!/usr/bin/env zsh
+
+# Go installation and setup script
+# Installs Go via Homebrew and global Go tools via `go install`
+#
+# Usage: install/go [OPTIONS]
+#
+# Options:
+#   --no-upgrade    Skip upgrade prompts for existing installations
+#   --help, -h      Show this help message
+
+set -e
+
+# -----------------------------------------------------------------------------
+# Configuration
+# -----------------------------------------------------------------------------
+
+GO_TOOLS=(
+  "github.com/mabd-dev/reposcan@latest"
+  "github.com/rafi/gits@latest"
+  "github.com/chainguard-dev/yam@latest"
+)
+
+# -----------------------------------------------------------------------------
+# CLI Argument Parsing
+# -----------------------------------------------------------------------------
+
+NO_UPGRADE=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --no-upgrade)
+      NO_UPGRADE=true
+      shift
+      ;;
+    --help|-h)
+      echo "Usage: $0 [OPTIONS]"
+      echo ""
+      echo "Options:"
+      echo "  --no-upgrade    Skip upgrade prompts for existing installations"
+      echo "  --help, -h      Show this help message"
+      echo ""
+      echo "Go tools installed:"
+      for tool in "${GO_TOOLS[@]}"; do
+        echo "  - $tool"
+      done
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      echo "Use --help for usage information"
+      exit 1
+      ;;
+  esac
+done
+
+# -----------------------------------------------------------------------------
+# Helper Functions
+# -----------------------------------------------------------------------------
+
+prompt_upgrade() {
+  local tool="$1"
+  local current_version="$2"
+
+  if [[ "$NO_UPGRADE" == "true" ]]; then
+    echo "  Skipping upgrade (--no-upgrade specified)"
+    return 1
+  fi
+
+  echo -n "  Upgrade $tool? (current: $current_version) [y/N]: "
+  read -r response
+  [[ "$response" =~ ^[Yy]$ ]]
+}
+
+# Check for ~/go/bin on $PATH and add to shell config if missing
+check_go_path() {
+  if ! echo "$PATH" | grep -q "$USER/go/bin"; then
+    if [[ "$SHELL" == *"zsh"* ]]; then
+      # Check if already in .zshrc to maintain idempotency
+      if ! grep -q 'go/bin' ~/.zshrc 2>/dev/null; then
+        echo 'export PATH="$PATH:$HOME/go/bin"' >> ~/.zshrc
+        echo "Added ~/go/bin to your \$PATH in ~/.zshrc"
+        echo "Reopen your terminal or run: source ~/.zshrc"
+      else
+        echo "PATH entry for ~/go/bin already exists in ~/.zshrc"
+      fi
+    elif [[ "$SHELL" == *"bash"* ]]; then
+      # Check if already in .bashrc to maintain idempotency
+      if ! grep -q 'go/bin' ~/.bashrc 2>/dev/null; then
+        echo 'export PATH="$PATH:$HOME/go/bin"' >> ~/.bashrc
+        echo "Added ~/go/bin to your \$PATH in ~/.bashrc"
+        echo "Reopen your terminal or run: source ~/.bashrc"
+      else
+        echo "PATH entry for ~/go/bin already exists in ~/.bashrc"
+      fi
+    else
+      echo "Warning: Unknown shell $SHELL - please add ~/go/bin to your PATH manually"
+    fi
+  else
+    echo "Already found \$HOME/go/bin on PATH"
+  fi
+}
+
+# -----------------------------------------------------------------------------
+# Go Installation
+# -----------------------------------------------------------------------------
+
+echo "Setting up Go and installing tools..."
+echo ""
+
+# Check if Go is installed
+if command -v go &>/dev/null; then
+  CURRENT_GO_VERSION=$(go version | awk '{print $3}')
+  echo "Go is already installed: $CURRENT_GO_VERSION"
+
+  # Check if installed via Homebrew
+  if brew list go &>/dev/null; then
+    LATEST_GO_VERSION=$(brew info go --json=v2 | jq -r '.formulae[0].versions.stable' 2>/dev/null || echo "unknown")
+    echo "  Installed via Homebrew (latest: go$LATEST_GO_VERSION)"
+
+    if prompt_upgrade "Go" "$CURRENT_GO_VERSION"; then
+      echo "  Upgrading Go..."
+      brew upgrade go || true
+    fi
+  else
+    echo "  Installed outside Homebrew (manual management)"
+  fi
+else
+  echo "Go is not installed"
+
+  if ! command -v brew &>/dev/null; then
+    echo "Error: Homebrew is required to install Go"
+    echo "Run install/brew first"
+    exit 1
+  fi
+
+  echo "Installing Go via Homebrew..."
+  brew install go
+fi
+
+echo ""
+
+# Verify Go installation
+if ! command -v go &>/dev/null; then
+  echo "Error: Go installation failed or not in PATH"
+  echo "You may need to add Go to your PATH:"
+  echo '  export PATH="$PATH:$(go env GOPATH)/bin"'
+  exit 1
+fi
+
+echo "Go version: $(go version)"
+echo "GOPATH: $(go env GOPATH)"
+echo "GOBIN: ${GOBIN:-$(go env GOPATH)/bin}"
+echo ""
+
+check_go_path
+
+# Ensure GOPATH/bin is in PATH for this session
+export PATH="$PATH:$(go env GOPATH)/bin"
+
+# -----------------------------------------------------------------------------
+# Go Tools Installation
+# -----------------------------------------------------------------------------
+
+echo "Installing Go tools..."
+echo ""
+
+for tool in "${GO_TOOLS[@]}"; do
+  # Extract tool name from full path (e.g., github.com/user/tool@version -> tool)
+  tool_name=$(echo "$tool" | sed 's|.*/||' | sed 's|@.*||')
+  tool_path=$(echo "$tool" | sed 's|@.*||')
+
+  echo "[$tool_name]"
+
+  # Check if tool is already installed
+  if command -v "$tool_name" &>/dev/null; then
+    installed_path=$(command -v "$tool_name")
+    echo "  Already installed: $installed_path"
+
+    if prompt_upgrade "$tool_name" "installed"; then
+      echo "  Upgrading $tool_name..."
+      go install "$tool"
+      echo "  Done"
+    fi
+  else
+    echo "  Installing $tool..."
+    go install "$tool"
+    echo "  Done"
+  fi
+
+  echo ""
+done
+
+# -----------------------------------------------------------------------------
+# Summary
+# -----------------------------------------------------------------------------
+
+echo "============================================"
+echo "Go setup complete!"
+echo "============================================"
+echo ""
+echo "Installed tools:"
+for tool in "${GO_TOOLS[@]}"; do
+  tool_name=$(echo "$tool" | sed 's|.*/||' | sed 's|@.*||')
+  if command -v "$tool_name" &>/dev/null; then
+    echo "  ✓ $tool_name: $(command -v "$tool_name")"
+  else
+    echo "  ✗ $tool_name: not found in PATH"
+  fi
+done
+echo ""
+echo "Tool usage:"
+echo "  reposcan -r ~/Git              # Scan repos for uncommitted/unpushed changes"
+echo "  reposcan -r ~/Git --filter dirty"
+echo "  reposcan -r ~/Git --output json"
+echo ""
+echo "  gits status ~/Git              # Show status of all repos"
+echo "  gits list                      # List configured projects"
+echo ""
+echo "  yam <file.yaml>                # YAML formatter"
