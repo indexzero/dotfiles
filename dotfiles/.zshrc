@@ -174,3 +174,9 @@ export PATH="$PATH:$HOME/go/bin"
 . "$HOME/.atuin/bin/env"
 
 eval "$(atuin init zsh)"
+
+export PNPM_HOME="$HOME/Library/Application Support/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
