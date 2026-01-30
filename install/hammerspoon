@@ -1,0 +1,6 @@
+#!/usr/bin/env zsh
+
+# Hammerspoon installation wrapper
+# See ../hammerspoon/README.md for details
+
+exec "${0:A:h}/../hammerspoon/install.sh" "$@"
