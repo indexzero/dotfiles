@@ -1,0 +1,116 @@
+#!/usr/bin/env zsh
+
+# upspoon - Update Hammerspoon spoons
+#
+# Updates spoons by pulling latest from their remotes.
+#
+# Usage:
+#   upspoon              # Update all spoons
+#   upspoon Foo.spoon    # Update specific spoon(s)
+
+set -e
+
+SPOONS_DIR="${SPOONS_DIR:-$HOME/.spoons}"
+
+# -----------------------------------------------------------------------------
+# Helper Functions
+# -----------------------------------------------------------------------------
+
+die() {
+  echo "error: $1" >&2
+  exit 1
+}
+
+warn() {
+  echo "warning: $1" >&2
+}
+
+is_git_repo() {
+  git -C "$1" rev-parse --git-dir &>/dev/null
+}
+
+has_uncommitted_changes() {
+  ! git -C "$1" diff-index --quiet HEAD -- 2>/dev/null
+}
+
+update_spoon() {
+  local spoon_path="$1"
+  local spoon_name=$(basename "$spoon_path")
+
+  echo "[$spoon_name]"
+
+  if [[ ! -d "$spoon_path" ]]; then
+    warn "  Directory not found: $spoon_path"
+    return 1
+  fi
+
+  if ! is_git_repo "$spoon_path"; then
+    warn "  Not a git repository"
+    return 1
+  fi
+
+  if has_uncommitted_changes "$spoon_path"; then
+    warn "  Has uncommitted changes, skipping"
+    return 1
+  fi
+
+  local before_sha=$(git -C "$spoon_path" rev-parse HEAD)
+
+  if ! git -C "$spoon_path" pull --ff-only 2>&1; then
+    warn "  Failed to pull (not fast-forwardable?)"
+    return 1
+  fi
+
+  local after_sha=$(git -C "$spoon_path" rev-parse HEAD)
+
+  if [[ "$before_sha" == "$after_sha" ]]; then
+    echo "  Already up to date"
+  else
+    echo "  Updated: ${before_sha:0:7} -> ${after_sha:0:7}"
+  fi
+
+  return 0
+}
+
+# -----------------------------------------------------------------------------
+# Main
+# -----------------------------------------------------------------------------
+
+if [[ ! -d "$SPOONS_DIR" ]]; then
+  die "Spoons directory not found: $SPOONS_DIR"
+fi
+
+# Collect spoons to update
+spoons=()
+if [[ $# -eq 0 ]]; then
+  # Update all spoons
+  for spoon in "$SPOONS_DIR"/*.spoon; do
+    [[ -d "$spoon" ]] && spoons+=("$spoon")
+  done
+else
+  # Update specific spoons
+  for name in "$@"; do
+    # Add .spoon suffix if not present
+    [[ "$name" != *.spoon ]] && name="${name}.spoon"
+    spoons+=("$SPOONS_DIR/$name")
+  done
+fi
+
+if [[ ${#spoons[@]} -eq 0 ]]; then
+  echo "No spoons found in $SPOONS_DIR"
+  exit 0
+fi
+
+# Update each spoon
+failures=0
+for spoon in "${spoons[@]}"; do
+  update_spoon "$spoon" || ((failures++))
+  echo ""
+done
+
+if [[ $failures -gt 0 ]]; then
+  echo "Done with $failures failure(s)"
+  exit 1
+else
+  echo "Done"
+fi
