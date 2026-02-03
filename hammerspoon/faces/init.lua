@@ -2,7 +2,7 @@
 --- https://github.com/indexzero/dotfiles/tree/main/hammerspoon/faces
 
 local Faces = {
-  _VERSION = "1.0.3",
+  _VERSION = "1.0.4",
   _DESCRIPTION = "Fast virtual workspaces for Hammerspoon",
 }
 
@@ -13,6 +13,7 @@ local windows = {}              -- windowId -> { face = string, frame = {x,y,w,h
 local windowFilter = nil        -- hs.window.filter instance
 local hotkeys = {}              -- Bound hotkeys for cleanup
 local saveTimer = nil           -- Debounce timer for persistence
+local sleepWatcher = nil        -- hs.caffeinate.watcher instance
 
 -- Constants
 local OFFSCREEN_X = -10000
@@ -137,6 +138,33 @@ local function showWindowObj(window, entry, id)
   end
 end
 
+--- Re-enforce current face after wake (re-hide windows not on current face)
+local function enforceCurrentFace()
+  log("enforceCurrentFace called for face: " .. tostring(currentFace))
+  local winMap = buildWindowMap()
+  local hiddenCount = 0
+
+  for id, entry in pairs(windows) do
+    if entry.face ~= currentFace then
+      local window = winMap[id]
+      if window then
+        local frame = window:frame()
+        if frame and not isOffscreen(frame) then
+          -- Window should be hidden but isn't - re-hide it
+          log("enforceCurrentFace: re-hiding window " .. tostring(id) .. " (face: " .. entry.face .. ")")
+          hideWindowObj(window, entry)
+          hiddenCount = hiddenCount + 1
+        end
+      end
+    end
+  end
+
+  if hiddenCount > 0 then
+    log("enforceCurrentFace: re-hid " .. hiddenCount .. " windows")
+    saveStateDebounced()
+  end
+end
+
 local function trackWindow(id, faceName, frame)
   if not id then return end
   windows[id] = {
@@ -217,6 +245,16 @@ function Faces.setup(config)
 
   windowFilter:subscribe(hs.window.filter.windowCreated, onWindowCreated)
   windowFilter:subscribe(hs.window.filter.windowDestroyed, onWindowDestroyed)
+
+  -- Watch for wake events to re-enforce face state
+  sleepWatcher = hs.caffeinate.watcher.new(function(event)
+    if event == hs.caffeinate.watcher.systemDidWake then
+      log("systemDidWake detected")
+      -- Delay slightly to let macOS finish restoring windows
+      hs.timer.doAfter(1, enforceCurrentFace)
+    end
+  end)
+  sleepWatcher:start()
 
   -- Save initial state
   saveStateNow()
@@ -437,6 +475,11 @@ function Faces.stop()
   if windowFilter then
     windowFilter:unsubscribeAll()
     windowFilter = nil
+  end
+
+  if sleepWatcher then
+    sleepWatcher:stop()
+    sleepWatcher = nil
   end
 
   -- Show all hidden windows before stopping
