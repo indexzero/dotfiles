@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+#
+# tmijs - "Too Many Inline comments in JavaScript"
+# Evaluate comment density in JS/TS files for Rob Pike-ification
+#
+# Usage: tmijs [directory] [options]
+#   -t, --threshold N   Only show files with >= N% comment density (default: 10)
+#   -a, --all           Show all files regardless of threshold
+#   -n, --top N         Show top N files (default: 20)
+#   -h, --help          Show this help
+#
+
+set -euo pipefail
+
+DIR="${1:-.}"
+THRESHOLD=10
+TOP=20
+SHOW_ALL=false
+
+# Parse arguments
+shift || true
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -t|--threshold) THRESHOLD="$2"; shift 2 ;;
+    -a|--all) SHOW_ALL=true; shift ;;
+    -n|--top) TOP="$2"; shift 2 ;;
+    -h|--help)
+      sed -n '3,12p' "$0"
+      exit 0
+      ;;
+    *) shift ;;
+  esac
+done
+
+# Find JS/TS files, excluding common non-source directories
+find "$DIR" \
+  -type f \( -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" -o -name "*.mjs" -o -name "*.mts" \) \
+  ! -path "*/node_modules/*" \
+  ! -path "*/dist/*" \
+  ! -path "*/build/*" \
+  ! -path "*/coverage/*" \
+  ! -path "*/.next/*" \
+  ! -path "*/vendor/*" \
+  ! -path "*/*.min.js" \
+  ! -path "*/*.bundle.js" \
+  -print0 2>/dev/null | while IFS= read -r -d '' file; do
+
+  # Skip empty files
+  total=$(wc -l < "$file" 2>/dev/null | tr -d '[:space:]')
+  [[ -z "$total" || "$total" -lt 10 ]] && continue
+
+  # Count single-line comments (// ...) and multi-line comment lines
+  comments=$(grep -cE '^\s*(//|/\*|\*|\*/)' "$file" 2>/dev/null | tr -d '[:space:]' || echo 0)
+  [[ -z "$comments" ]] && comments=0
+
+  # Calculate percentage
+  pct=$((comments * 100 / total))
+
+  # Filter by threshold unless --all
+  if [[ "$SHOW_ALL" == "true" ]] || [[ "$pct" -ge "$THRESHOLD" ]]; then
+    printf "%3d%% %4d/%4d %s\n" "$pct" "$comments" "$total" "$file"
+  fi
+done | sort -rn | head -n "$TOP"
