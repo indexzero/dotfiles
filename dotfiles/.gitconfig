@@ -47,3 +47,6 @@
 
   # create a new branch from origin/main with no upstream, then push to set tracking
   fresh = "!f() { git checkout -b \"$1\" origin/main --no-track && git push -u origin HEAD; }; f"
+
+[gtr "hook"]
+  preRemove = gtrbk copy
