@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+
+# gtrbk - Copy files back from worktrees to main repo
+# Usage: gtrbk [list|copy]
+#   list  - Show files that would be copied (default)
+#   copy  - Actually copy files back to main repo
+#
+# Must be run from the root repo directory (not a worktree)
+# Uses globs from .worktreeinclude to identify files
+
+set -euo pipefail
+
+# Check if we're in a git repo
+if ! git rev-parse --git-dir &>/dev/null; then
+  echo "[x] Not in a git repository" >&2
+  exit 1
+fi
+
+# Check if we're in a worktree (not the main repo)
+GIT_DIR=$(git rev-parse --git-dir)
+if [[ "$GIT_DIR" == *".git/worktrees"* ]]; then
+  echo "[x] Cannot run from a worktree. Run from the main repo directory." >&2
+  exit 1
+fi
+
+# Get repo root and name
+REPO_ROOT=$(git rev-parse --show-toplevel)
+REPO_NAME=$(basename "$REPO_ROOT")
+WORKTREES_DIR="$(dirname "$REPO_ROOT")/${REPO_NAME}-worktrees"
+
+# Check for .worktreeinclude
+INCLUDE_FILE="$REPO_ROOT/.worktreeinclude"
+if [[ ! -f "$INCLUDE_FILE" ]]; then
+  echo "[x] No .worktreeinclude file found at $INCLUDE_FILE" >&2
+  exit 1
+fi
+
+# Check if worktrees directory exists
+if [[ ! -d "$WORKTREES_DIR" ]]; then
+  echo "[x] No worktrees directory found at $WORKTREES_DIR" >&2
+  exit 1
+fi
+
+# Parse mode
+MODE="${1:-list}"
+if [[ "$MODE" != "list" && "$MODE" != "copy" ]]; then
+  echo "Usage: gtrbk [list|copy]" >&2
+  echo "  list  - Show files that would be copied (default)" >&2
+  echo "  copy  - Actually copy files back to main repo" >&2
+  exit 1
+fi
+
+# Read patterns from .worktreeinclude (skip empty lines and comments)
+PATTERNS=()
+while IFS= read -r line || [[ -n "$line" ]]; do
+  # Skip empty lines and comments
+  [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+  PATTERNS+=("$line")
+done < "$INCLUDE_FILE"
+
+if [[ ${#PATTERNS[@]} -eq 0 ]]; then
+  echo "[x] No patterns found in .worktreeinclude" >&2
+  exit 1
+fi
+
+# Collect files using bash globbing
+shopt -s globstar nullglob
+
+FOUND=0
+COPIED=0
+
+for wt in "$WORKTREES_DIR"/*/; do
+  [[ -d "$wt" ]] || continue
+  WT_NAME=$(basename "${wt%/}")
+  WT_PATH="${wt%/}"
+
+  for pattern in "${PATTERNS[@]}"; do
+    # Expand glob in worktree directory
+    for file in "$WT_PATH"/$pattern; do
+      [[ -f "$file" ]] || continue
+
+      # Get relative path
+      REL_PATH="${file#$WT_PATH/}"
+      DEST="$REPO_ROOT/$REL_PATH"
+
+      # Skip if file already exists in root repo
+      [[ -f "$DEST" ]] && continue
+
+      ((FOUND++)) || true
+
+      if [[ "$MODE" == "list" ]]; then
+        echo "[$WT_NAME] $REL_PATH"
+      else
+        mkdir -p "$(dirname "$DEST")"
+        cp "$file" "$DEST"
+        echo "[copied] [$WT_NAME] $REL_PATH"
+        ((COPIED++)) || true
+      fi
+    done
+  done
+done
+
+if [[ $FOUND -eq 0 ]]; then
+  echo "No files found matching patterns in .worktreeinclude"
+  exit 0
+fi
+
+if [[ "$MODE" == "copy" ]]; then
+  echo ""
+  echo "Copied $COPIED file(s) from worktrees to main repo"
+fi
