@@ -47,6 +47,10 @@
 
   # create a new branch from origin/main with no upstream, then push to set tracking
   fresh = "!f() { git checkout -b \"$1\" origin/main --no-track && git push -u origin HEAD; }; f"
-
 [gtr "hook"]
   preRemove = gtrbk copy
+[filter "lfs"]
+  clean = git-lfs clean -- %f
+  smudge = git-lfs smudge -- %f
+  process = git-lfs filter-process
+  required = true
