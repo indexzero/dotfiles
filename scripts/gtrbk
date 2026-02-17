@@ -16,15 +16,15 @@ if ! git rev-parse --git-dir &>/dev/null; then
   exit 1
 fi
 
-# Check if we're in a worktree (not the main repo)
+# Resolve the main repo root (works from both main repo and worktrees)
 GIT_DIR=$(git rev-parse --git-dir)
 if [[ "$GIT_DIR" == *".git/worktrees"* ]]; then
-  echo "[x] Cannot run from a worktree. Run from the main repo directory." >&2
-  exit 1
+  # In a worktree: .git/worktrees/<name> -> go up to .git, then to repo root
+  MAIN_GIT_DIR="${GIT_DIR%/worktrees/*}"
+  REPO_ROOT=$(dirname "$MAIN_GIT_DIR")
+else
+  REPO_ROOT=$(git rev-parse --show-toplevel)
 fi
-
-# Get repo root and name
-REPO_ROOT=$(git rev-parse --show-toplevel)
 REPO_NAME=$(basename "$REPO_ROOT")
 WORKTREES_DIR="$(dirname "$REPO_ROOT")/${REPO_NAME}-worktrees"
 
