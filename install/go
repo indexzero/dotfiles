@@ -16,6 +16,7 @@ set -e
 # -----------------------------------------------------------------------------
 
 GO_TOOLS=(
+  "github.com/charmbracelet/glow/v2@latest"
   "github.com/mabd-dev/reposcan@latest"
   "github.com/rafi/gits@latest"
   "github.com/chainguard-dev/yam@latest"
@@ -210,6 +211,8 @@ for tool in "${GO_TOOLS[@]}"; do
 done
 echo ""
 echo "Tool usage:"
+echo "  glow README.md                 # Render markdown in the terminal"
+echo ""
 echo "  reposcan -r ~/Git              # Scan repos for uncommitted/unpushed changes"
 echo "  reposcan -r ~/Git --filter dirty"
 echo "  reposcan -r ~/Git --output json"
