@@ -63,6 +63,12 @@ if [[ ${#PATTERNS[@]} -eq 0 ]]; then
   exit 1
 fi
 
+# Built-in patterns: always recover scratch files from worktrees
+PATTERNS+=("scratch/**")
+
+# Built-in exclusions: skip large/generated directories
+EXCLUDES=("scratch/logs/")
+
 # Collect files using bash globbing
 shopt -s globstar nullglob
 
@@ -82,6 +88,16 @@ for wt in "$WORKTREES_DIR"/*/; do
       # Get relative path
       REL_PATH="${file#$WT_PATH/}"
       DEST="$REPO_ROOT/$REL_PATH"
+
+      # Skip excluded paths
+      skip=false
+      for excl in "${EXCLUDES[@]}"; do
+        if [[ "$REL_PATH" == "$excl"* ]]; then
+          skip=true
+          break
+        fi
+      done
+      $skip && continue
 
       # Skip if file already exists in root repo
       [[ -f "$DEST" ]] && continue
