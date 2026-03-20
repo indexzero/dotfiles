@@ -1,0 +1,19 @@
+#!/bin/zsh
+
+# Install nono CLI
+brew install nono
+
+# Install custom nono profile
+# macOS: ~/Library/Preferences/nono/profiles/
+# Linux: ~/.config/nono/profiles/
+if [[ "$(uname)" == "Darwin" ]]; then
+  PROFILE_DIR="$HOME/Library/Preferences/nono/profiles"
+else
+  PROFILE_DIR="$HOME/.config/nono/profiles"
+fi
+
+mkdir -p "$PROFILE_DIR"
+cp -f "$(dirname $0)/../dotfiles/.config/nono/profiles/cc0.json" \
+  "$PROFILE_DIR/cc0.json"
+
+echo "Installed nono profile: $PROFILE_DIR/cc0.json"

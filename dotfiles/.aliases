@@ -50,3 +50,25 @@ alias meak="make"
 
 # ssh
 alias ssht="ssh -f -N -D 9999 -C"
+
+# claude code (nono-sandboxed)
+# nono provides kernel-enforced sandbox (macOS Seatbelt / Linux Landlock)
+# so --dangerously-skip-permissions is safe: nono is the security boundary
+# custom profile: ~/.config/nono/profiles/cc0.json
+#   built-in security groups + custom paths:
+#   r/w: $CWD, ~/.claude, ~/.npm_local, ~/Experimental, ~/Gist, ~/Git
+#   /private/tmp r/w via system_read_macos group
+#   git operations: CWD only (advisory, not kernel-enforced)
+alias ccd="nono run --allow-cwd --profile cc0 -- claude --dangerously-skip-permissions"
+alias ccm="nono run --allow-cwd --profile cc0 -- claude --dangerously-skip-permissions --betas context-1m-2025-08-07"
+alias cco="nono run --allow-cwd --profile cc0 -- claude --model claude-opus-4-1-20250805"
+alias ccs="nono run --allow-cwd --profile cc0 -- claude --model claude-sonnet-4-5-20250929"
+alias ccdo="nono run --allow-cwd --profile cc0 -- claude --dangerously-skip-permissions --model claude-opus-4-1-20250805"
+alias ccds="nono run --allow-cwd --profile cc0 -- claude --dangerously-skip-permissions --model claude-sonnet-4-5-20250929"
+alias cclogin="nono run --allow-cwd --profile cc0 --allow-launch-services -- claude"
+# ccr: rollback mode — nono snapshots cwd before execution, restores on exit
+alias ccr="nono run --rollback --profile claude-code -- claude --dangerously-skip-permissions"
+
+# cd aliases for common projects
+alias dotf="ghcd indexzero/dotfiles"
+alias dotv="ghcd indexzero/dotvibes"
