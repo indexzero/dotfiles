@@ -3,4 +3,5 @@
 brew "fastfetch"
 brew "only-switch"
 brew "pearcleaner"
+brew "mole"
 cask "eul"

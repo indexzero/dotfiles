@@ -21,6 +21,9 @@ instance_eval(File.read("#{__dir__}/Brewfile.docs"))
 # Databases
 instance_eval(File.read("#{__dir__}/Brewfile.databases"))
 
+# LLMs and related utilities
+instance_eval(File.read("#{__dir__}/Brewfile.llms"))
+
 # Media Processing
 instance_eval(File.read("#{__dir__}/Brewfile.media"))
 
