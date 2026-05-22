@@ -60,7 +60,11 @@ export PATH="$HOME/go/bin:$PATH"
 #
 # BUN FOR THE BUN GODS
 #
-[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+if [ -s "$HOME/.bun/_bun" ]; then
+  # _bun calls `compdef _bun bun` at source time; ensure it is defined.
+  (( ${+functions[compdef]} )) || { autoload -Uz compinit && compinit -C; }
+  source "$HOME/.bun/_bun"
+fi
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
@@ -83,3 +87,6 @@ export PATH="$HOME/Library/bin:$PATH"
 # Security hardening
 #
 source ~/.security
+
+# Turn on for vertx claude
+# source ~/.vertx.claude

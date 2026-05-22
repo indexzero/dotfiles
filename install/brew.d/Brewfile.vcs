@@ -2,5 +2,6 @@
 
 brew "gh"
 brew "git-lfs"
+brew "jj"
 tap "withgraphite/tap"
 brew "withgraphite/tap/graphite"

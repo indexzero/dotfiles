@@ -2,5 +2,5 @@
 
 # ~/.claude/settings.json: hook added
 # filters:  ~/Library/Application Support/rtk/filters.toml (template, edit to add user-global filters)
-brew "rtk-ai/tap/rtk"
+# rtk: installed from source at ~/Git/indexzero/rtk (cargo install --path .)
 brew "rtk-ai/tap/icm"
