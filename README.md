@@ -1,10 +1,4 @@
-[indexzero][repo]'s dotfiles
-==========================
-
-Seemed like the thing to do. My dotfiles.
-
-Table of Contents
------------------
+Seemed like the thing to do
 
 * [🔧 Setup](#setup)
   * [📦 Prerequisites](#prerequisites)
@@ -83,25 +77,11 @@ Utility scripts in [`scripts/`][scripts dir]:
 
 | Script | Description |
 |:-------|:------------|
-| `git-changelog-all` | Generate changelogs across repos |
 | `git-fetch-all` | Fetch all remotes in bulk |
 | `gtrbk` | Git worktree backup utility |
 | `ghi` | GitHub issue helper |
 | `ghr` | GitHub release helper |
 | `gho` | GitHub organization helper |
-| `qt4slack.sh` | Convert QuickTime video to Slack-ready MP4 |
-| `grype-explainer.sh` | Security vulnerability explainer |
-| `sploy` | Deploy utility |
-| `lsync` | Sync utility |
-
-### Hammerspoon
-
-macOS automation and window management via [Hammerspoon],
-configured in [`hammerspoon/faces/`][faces]:
-
-* Window management and layout persistence
-* Custom keybindings
-* Sleep/wake recovery
 
 ### Brewfiles
 
@@ -120,59 +100,6 @@ Homebrew packages are organized into modular [Brewfiles][brew dir]:
 | `Brewfile.system` | System utilities |
 | `Brewfile.terminals` | Terminal emulators |
 | `Brewfile.vcs` | Version control tools |
-
-Tools of Note
--------------
-
-| Tool | Description |
-|:-----|:------------|
-| [Streamhut](https://streamhut.io/) | Stream your terminal to the web |
-| [Mermaid Live](https://mermaid.live) | Live diagram editor |
-| [ActivityWatch](https://activitywatch.net/) | Automated time tracker |
-| [asciinema](https://asciinema.org/) | Record terminal sessions |
-| [IsoFlow](https://isoflow.io/) | Isometric infrastructure diagrams |
-| [Floobits](https://floobits.com/) | Collaborative editing |
-| [Social Grep](https://www.socialgrep.com/) | Reddit search and analysis |
-| [D2](https://d2lang.com/) | Declarative diagramming language |
-
-Apps
-----
-
-| App | Description |
-|:---|:------------|
-| [Obsidian](https://obsidian.md) | Knowledge base and note-taking |
-
-Customize
----------
-
-### Local Settings
-
-The dotfiles can be easily extended to suit additional local
-requirements by using the following files:
-
-#### `~/.gitconfig.local`
-
-The `~/.gitconfig.local` file will be automatically included after
-the configurations from `~/.gitconfig`, thus, allowing its content
-to overwrite or add to the existing Git configurations.
-
-__Note:__ Use `~/.gitconfig.local` to store sensitive information
-such as the Git user credentials, e.g.:
-
-```gitconfig
-[commit]
-
-    # Sign commits using GPG.
-    # https://help.github.com/articles/signing-commits-using-gpg/
-
-    gpgSign = true
-
-[user]
-
-    name = Your Name
-    email = account@example.com
-    signingKey = XXXXXXXX
-```
 
 License
 -------
