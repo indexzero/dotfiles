@@ -9,11 +9,6 @@ Seemed like the thing to do
   * [📜 Scripts](#scripts)
   * [🪟 Hammerspoon](#hammerspoon)
   * [🍺 Brewfiles](#brewfiles)
-* [🛠️  Tools of Note](#tools-of-note)
-* [📱 Apps](#apps)
-* [💄 Customize](#customize)
-  * [🌐 Local Settings](#local-settings)
-* [📑 License](#license)
 
 Setup
 -----
@@ -128,7 +123,5 @@ The code is available under the [MIT license][license].
 [editorconfig]: dotfiles/.editorconfig
 
 [scripts dir]: scripts/
-[faces]: hammerspoon/faces/
 [brew dir]: install/brew.d/
 
-[license]: LICENSE.txt
