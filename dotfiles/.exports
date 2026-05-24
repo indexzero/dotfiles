@@ -60,7 +60,11 @@ export PATH="$HOME/go/bin:$PATH"
 #
 # BUN FOR THE BUN GODS
 #
-[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
+if [ -s "$HOME/.bun/_bun" ]; then
+  # _bun calls `compdef _bun bun` at source time; ensure it is defined.
+  (( ${+functions[compdef]} )) || { autoload -Uz compinit && compinit -C; }
+  source "$HOME/.bun/_bun"
+fi
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
@@ -69,8 +73,20 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 # (e.g. claude)
 #
 export DISABLE_TELEMETRY=1
+export DISABLE_ERROR_REPORTING=1
+export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 
 #
 # Claude bash settings
 #
 export CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/Library/bin:$PATH"
+
+#
+# Security hardening
+#
+source ~/.security
+
+# Turn on for vertx claude
+# source ~/.vertx.claude

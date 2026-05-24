@@ -1,13 +1,49 @@
 #!/usr/bin/env zsh
 
-# Install poetry
-curl -sSL https://install.python-poetry.org | python3 -
+# Install uv first (uses curl which handles SSL properly)
+if ! command -v uv &>/dev/null; then
+  echo "Installing uv..."
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  # Source the env file to get uv in PATH
+  [[ -f "$HOME/.local/bin/env" ]] && source "$HOME/.local/bin/env"
+  [[ -f "$HOME/Library/bin/env" ]] && source "$HOME/Library/bin/env"
+fi
 
-# Install pyenv
-brew install pyenv
-echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
-echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
-echo 'eval "$(pyenv init -)"' >> ~/.zshrc
+# Ensure uv is in PATH for this session
+export PATH="$HOME/.local/bin:$HOME/Library/bin:$PATH"
+
+echo "uv installed: $(uv --version)"
+
+# Install pyenv via brew
+# Note: Shell config is managed in dotfiles/.exports
+if ! brew list pyenv &>/dev/null; then
+  echo "Installing pyenv..."
+  brew install pyenv
+else
+  echo "pyenv already installed: $(pyenv --version)"
+fi
+
+# Install global Python tools via uv (includes poetry)
+echo "Installing/updating Python tools via uv..."
+uv tool install --upgrade poetry
+uv tool install --upgrade pipreqs
+uv tool install --upgrade pipdeptree
+uv tool install --upgrade aider-chat
+
+# Usage notes for installed tools:
+# pipreqs ./  # Generates a minimal requirements.txt for the project
+# pipdeptree --warn silence > dependency_tree.txt
+#
+# # Change directory into a git repo
+# cd /to/your/git/repo
+#
+# # Work with Claude 3.5 Sonnet on your repo
+# export ANTHROPIC_API_KEY=your-key-goes-here
+# aider
+#
+# # Work with GPT-4o on your repo
+# export OPENAI_API_KEY=your-key-goes-here
+# aider
 
 # Install Anaconda
 # https://www.anaconda.com/download/
@@ -28,22 +64,3 @@ echo 'eval "$(pyenv init -)"' >> ~/.zshrc
 # curl https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh -o ~/miniconda3/miniconda.sh
 # bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
 # rm ~/miniconda3/miniconda.sh
-
-pip install pipreqs pipdeptree
-# pipreqs ./  # Generates a minimal requirements.txt for the project
-# pipdeptree --warn silence > dependency_tree.txt
-
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-python -m pip install -U aider-chat
-
-# # Change directory into a git repo
-# cd /to/your/git/repo
-
-# # Work with Claude 3.5 Sonnet on your repo
-# export ANTHROPIC_API_KEY=your-key-goes-here
-# aider
-
-# # Work with GPT-4o on your repo
-# export OPENAI_API_KEY=your-key-goes-here
-# aider 

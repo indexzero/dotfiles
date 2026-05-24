@@ -3,3 +3,8 @@ scratch
 
 .claude
 CLAUDE.md
+
+.vscode
+
+.git-commit*
+.pr-summary*

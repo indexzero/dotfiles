@@ -128,6 +128,12 @@ for key ('j') bindkey -M vicmd ${key} history-substring-search-down
 unset key
 # }}} End configuration added by Zim install
 
+# Fallback: ensure compdef is defined before tool completions below.
+# Zim normally runs compinit, but if its anonymous-function invocation
+# silently fails, tool completions (_bun, dex, gcloud, atuin) break with
+# "command not found: compdef".
+(( ${+functions[compdef]} )) || { autoload -Uz compinit && compinit -C; }
+
 # Load ~/.bash_prompt, ~/.exports, ~/.aliases, ~/.functions and ~/.extra
 # ~/.extra can be used for settings you don’t want to commit
 for file in ~/.{exports,aliases,functions,extra,private}; do
@@ -174,3 +180,9 @@ export PATH="$PATH:$HOME/go/bin"
 . "$HOME/.atuin/bin/env"
 
 eval "$(atuin init zsh)"
+
+export PNPM_HOME="$HOME/Library/Application Support/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac

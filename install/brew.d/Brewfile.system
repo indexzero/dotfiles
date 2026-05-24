@@ -3,4 +3,7 @@
 brew "fastfetch"
 brew "only-switch"
 brew "pearcleaner"
+brew "mole"
+brew "cirruslabs/cli/tart"
+cask "betterdisplay"
 cask "eul"

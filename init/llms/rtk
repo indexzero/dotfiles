@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+# rtk/icm initialization (no mcp)
+icm init --mode skill
+icm init --mode hook
+
+# rtk initialization
+rtk init -g
+

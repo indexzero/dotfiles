@@ -9,6 +9,8 @@ npm i -g http-server
 npm i -g fx
 npm i -g yarn
 npm i -g @builder.io/micro-agent
+npm i -g githuman
+npm i -g @zeeg/dex
 yarn config set --home enableTelemetry 0
 
 set +x;

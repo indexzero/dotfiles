@@ -1,0 +1,39 @@
+{
+  "meta": {
+    "name": "cc0",
+    "version": "1.0.0",
+    "description": "Claude Code with indexzero workspace paths."
+  },
+  "security": {
+    "groups": [
+      "system_read_macos",
+      "system_write_macos",
+      "user_tools",
+      "homebrew",
+      "claude_code_macos",
+      "user_caches_macos",
+      "node_runtime",
+      "rust_runtime",
+      "python_runtime",
+      "vscode_macos",
+      "git_config"
+    ]
+  },
+  "filesystem": {
+    "allow": [
+      "$WORKDIR",
+      "$HOME/.claude",
+      "$HOME/.npm_local",
+      "$HOME/Experimental",
+      "$HOME/Gist",
+      "$HOME/Git"
+    ],
+    "allow_file": [
+      "$HOME/.claude.json",
+      "$HOME/.claude.json.lock"
+    ]
+  },
+  "network": {
+    "block": false
+  }
+}
