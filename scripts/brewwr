@@ -1,0 +1,433 @@
+#!/usr/bin/env bash
+# brewwr — brew write.
+#
+# Thin wrapper around `brew bundle add | remove | list` that keeps
+# install/brew.d/Brewfile.<set> in sync with the host. Adds: set
+# selection (gum), cross-set conflict detection, and a `dist(brew)`
+# auto-commit. Delegates all Brewfile mutation to brew bundle.
+#
+# Usage: brewwr <install|uninstall|sets> [args]
+
+set -euo pipefail
+
+# ---------- self-location ----------
+
+self_path() {
+  local s="${BASH_SOURCE[0]}"
+  while [ -L "$s" ]; do
+    local target
+    target="$(readlink "$s")"
+    case "$target" in
+      /*) s="$target" ;;
+      *)  s="$(cd "$(dirname "$s")" && pwd)/$target" ;;
+    esac
+  done
+  printf '%s\n' "$s"
+}
+
+resolve_dotfiles_home() {
+  local script_dir candidate
+  script_dir="$(cd "$(dirname "$(self_path)")" && pwd)"
+  if candidate="$(git -C "$script_dir" rev-parse --show-toplevel 2>/dev/null)" \
+      && [ -d "$candidate/install/brew.d" ]; then
+    printf '%s\n' "$candidate"
+    return 0
+  fi
+  if [ -n "${DOTFILES_HOME:-}" ] && [ -d "$DOTFILES_HOME/install/brew.d" ]; then
+    printf '%s\n' "$DOTFILES_HOME"
+    return 0
+  fi
+  return 1
+}
+
+# ---------- helpers ----------
+
+die() { printf 'brewwr: %s\n' "$*" >&2; exit "${EXIT:-1}"; }
+
+require() {
+  command -v "$1" >/dev/null 2>&1 \
+    || { EXIT=1 die "required command '$1' not on PATH${2:+ ($2)}"; }
+}
+
+is_tty() { [ -t 0 ] && [ -t 1 ]; }
+
+# Append a newline if the file is non-empty and lacks a trailing one.
+ensure_trailing_newline() {
+  local f="$1"
+  [ -s "$f" ] || return 0
+  [ -z "$(tail -c1 -- "$f")" ] || printf '\n' >> "$f"
+}
+
+brewfile_dir()        { printf '%s/install/brew.d\n' "$DOTFILES_HOME"; }
+brewfile_for_set()    { printf '%s/Brewfile.%s\n' "$(brewfile_dir)" "$1"; }
+brewfile_rel_for_set(){ printf 'install/brew.d/Brewfile.%s\n' "$1"; }
+
+# Iterate set names (suffix only), excluding the aggregator Brewfile.
+list_set_names() {
+  local f base
+  for f in "$(brewfile_dir)"/Brewfile.*; do
+    [ -e "$f" ] || continue
+    base="${f##*/}"
+    printf '%s\n' "${base#Brewfile.}"
+  done
+}
+
+set_description() {
+  local line
+  line="$(grep -m1 '^# ' "$1" 2>/dev/null || true)"
+  printf '%s\n' "${line#\# }"
+}
+
+# Lists set names that contain <pkg>, one per line. Empty output = not found.
+find_sets_for_pkg() {
+  local pkg="$1" name file
+  while IFS= read -r name; do
+    file="$(brewfile_for_set "$name")"
+    if brew bundle list --all --file="$file" \
+        | grep -Fxq -- "$pkg"; then
+      printf '%s\n' "$name"
+    fi
+  done < <(list_set_names)
+}
+
+# Determine which kind (--formula | --cask | --tap) a pkg currently has in a
+# given Brewfile. Empty output = not present.
+detect_kind_in_file() {
+  local pkg="$1" file="$2" kind
+  for kind in formulae casks taps; do
+    if brew bundle list "--$kind" --file="$file" \
+        | grep -Fxq -- "$pkg"; then
+      case "$kind" in
+        formulae) printf 'formula\n' ;;
+        casks)    printf 'cask\n' ;;
+        taps)     printf 'tap\n' ;;
+      esac
+      return 0
+    fi
+  done
+}
+
+# Decide kind for an install: explicit flag wins, else heuristic + brew info.
+decide_install_kind() {
+  local pkg="$1" forced="${2:-}"
+  if [ -n "$forced" ]; then
+    printf '%s\n' "$forced"
+    return 0
+  fi
+  # user/repo with no third segment = a tap
+  if [[ "$pkg" =~ ^[^/]+/[^/]+$ ]]; then
+    printf 'tap\n'
+    return 0
+  fi
+  local json fcount ccount
+  json="$(brew info --json=v2 "$pkg" || true)"
+  [ -n "$json" ] || { EXIT=3 die "brew info '$pkg' failed (unknown package?)"; }
+  fcount="$(printf '%s' "$json" | jq '.formulae | length')"
+  ccount="$(printf '%s' "$json" | jq '.casks    | length')"
+  if [ "$fcount" -gt 0 ] && [ "$ccount" -gt 0 ]; then
+    if is_tty; then
+      gum choose --header "'$pkg' resolves to both a formula and a cask. Which?" \
+        formula cask
+    else
+      EXIT=2 die "'$pkg' is ambiguous (formula and cask exist); pass --formula or --cask"
+    fi
+  elif [ "$ccount" -gt 0 ]; then
+    printf 'cask\n'
+  elif [ "$fcount" -gt 0 ]; then
+    printf 'formula\n'
+  else
+    EXIT=3 die "brew info '$pkg' returned no formula or cask"
+  fi
+}
+
+kind_to_flag() {
+  case "$1" in
+    formula) printf -- '--formula\n' ;;
+    cask)    printf -- '--cask\n' ;;
+    tap)     printf -- '--tap\n' ;;
+    *) EXIT=1 die "internal: unknown kind '$1'" ;;
+  esac
+}
+
+prompt_set() {
+  local name desc choices=() pick
+  while IFS= read -r name; do
+    desc="$(set_description "$(brewfile_for_set "$name")")"
+    choices+=("$name — $desc")
+  done < <(list_set_names)
+  [ "${#choices[@]}" -gt 0 ] || { EXIT=1 die "no Brewfile.<set> files found in $(brewfile_dir)"; }
+  pick="$(printf '%s\n' "${choices[@]}" | gum choose --header 'Which set?')"
+  [ -n "$pick" ] || { EXIT=2 die 'no set selected'; }
+  printf '%s\n' "${pick%% *}"
+}
+
+assert_brew_d_clean() {
+  local dirty
+  dirty="$(git -C "$DOTFILES_HOME" status --porcelain -- install/brew.d/)"
+  [ -z "$dirty" ] \
+    || { EXIT=6 die "install/brew.d/ has uncommitted changes; commit or stash first"$'\n'"$dirty"; }
+}
+
+commit_brewfile() {
+  local action="$1" pkg="$2" set_name="$3"
+  local rel; rel="$(brewfile_rel_for_set "$set_name")"
+  git -C "$DOTFILES_HOME" add -- "$rel"
+  if git -C "$DOTFILES_HOME" diff --cached --quiet -- "$rel"; then
+    return 0
+  fi
+  local prep
+  case "$action" in
+    add)    prep='to' ;;
+    remove) prep='from' ;;
+    *) EXIT=1 die "internal: bad commit action '$action'" ;;
+  esac
+  git -C "$DOTFILES_HOME" commit -m "dist(brew) $action $pkg $prep Brewfile.$set_name" >/dev/null
+  printf 'brewwr: committed %s %s %s Brewfile.%s\n' "$action" "$pkg" "$prep" "$set_name"
+}
+
+# ---------- subcommand: install ----------
+
+usage_install() {
+  cat <<'EOF'
+Usage: brewwr install <pkg> [flags]
+
+Flags:
+  -s, --set <name>   Target Brewfile.<name>. Prompts via gum if omitted.
+      --cask         Force cask kind.
+      --formula      Force formula kind.
+      --tap          Force tap kind.
+      --no-install   Write to Brewfile only; skip the install.
+      --no-upgrade   Install only <pkg>; do NOT rebundle the whole set. (Default:
+                     brew bundle install runs against the file, upgrading anything
+                     outdated alongside the new entry.)
+      --no-commit    Leave the diff in the working tree.
+  -h, --help
+EOF
+}
+
+cmd_install() {
+  local pkg='' set_name='' forced_kind='' no_install=0 no_upgrade=0 no_commit=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -s|--set)         set_name="$2"; shift 2 ;;
+      --cask)           forced_kind='cask'; shift ;;
+      --formula|--formulae) forced_kind='formula'; shift ;;
+      --tap)            forced_kind='tap'; shift ;;
+      --no-install)     no_install=1; shift ;;
+      --no-upgrade)     no_upgrade=1; shift ;;
+      --no-commit)      no_commit=1; shift ;;
+      -h|--help)        usage_install; exit 0 ;;
+      --)               shift; break ;;
+      -*)               EXIT=2 die "unknown flag: $1" ;;
+      *)
+        [ -z "$pkg" ] || { EXIT=2 die "unexpected arg: $1"; }
+        pkg="$1"; shift ;;
+    esac
+  done
+  [ -n "$pkg" ] || { usage_install; EXIT=2 die 'missing <pkg>'; }
+
+  if [ -z "$set_name" ]; then
+    is_tty || { EXIT=2 die '--set is required when not running in a TTY'; }
+    set_name="$(prompt_set)"
+  fi
+  local file; file="$(brewfile_for_set "$set_name")"
+  [ -f "$file" ] || { EXIT=2 die "no such set: $set_name (try 'brewwr sets')"; }
+
+  # Cross-set conflict / idempotency
+  local existing other_sets=()
+  while IFS= read -r existing; do
+    [ -n "$existing" ] || continue
+    if [ "$existing" = "$set_name" ]; then
+      printf "brewwr: '%s' already in Brewfile.%s — no-op\n" "$pkg" "$set_name"
+      return 0
+    fi
+    other_sets+=("$existing")
+  done < <(find_sets_for_pkg "$pkg")
+  if [ "${#other_sets[@]}" -gt 0 ]; then
+    EXIT=5 die "'$pkg' already in Brewfile.${other_sets[0]}; run 'brewwr uninstall --keep-installed $pkg' first, or target that set"
+  fi
+
+  local kind kind_flag
+  kind="$(decide_install_kind "$pkg" "$forced_kind")"
+  kind_flag="$(kind_to_flag "$kind")"
+
+  assert_brew_d_clean
+
+  # Guard: `brew bundle add` appends without inserting a leading newline if
+  # the target file does not already end with one. Ensure trailing newline.
+  ensure_trailing_newline "$file"
+
+  if [ "$no_install" -eq 1 ]; then
+    # Write only; never touch the host.
+    brew bundle add "$kind_flag" --file="$file" "$pkg" \
+      || { EXIT=3 die 'brew bundle add failed'; }
+  elif [ "$no_upgrade" -eq 1 ]; then
+    # Install just this package, then write. Skips the implicit whole-file
+    # rebundle that `brew bundle add --install` performs.
+    case "$kind" in
+      tap)     brew tap "$pkg" ;;
+      cask)    brew install --cask "$pkg" ;;
+      formula) brew install "$pkg" ;;
+    esac || { EXIT=3 die "brew install '$pkg' failed; Brewfile unchanged"; }
+    brew bundle add "$kind_flag" --file="$file" "$pkg" \
+      || { EXIT=3 die 'brew bundle add failed'; }
+  else
+    # Default: let `brew bundle add --install` run install against the file,
+    # upgrading anything outdated alongside the new entry. This matches stock
+    # `brew bundle` ergonomics.
+    brew bundle add "$kind_flag" --install --file="$file" "$pkg" \
+      || { EXIT=3 die 'brew bundle add --install failed'; }
+  fi
+
+  [ "$no_commit" -eq 0 ] && commit_brewfile add "$pkg" "$set_name"
+}
+
+# ---------- subcommand: uninstall ----------
+
+usage_uninstall() {
+  cat <<'EOF'
+Usage: brewwr uninstall <pkg> [flags]
+
+Flags:
+      --keep-installed  Remove from Brewfile but skip `brew uninstall`.
+      --no-commit       Leave the diff in the working tree.
+  -h, --help
+EOF
+}
+
+cmd_uninstall() {
+  local pkg='' keep_installed=0 no_commit=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --keep-installed) keep_installed=1; shift ;;
+      --no-commit)      no_commit=1; shift ;;
+      -h|--help)        usage_uninstall; exit 0 ;;
+      --)               shift; break ;;
+      -*)               EXIT=2 die "unknown flag: $1" ;;
+      *)
+        [ -z "$pkg" ] || { EXIT=2 die "unexpected arg: $1"; }
+        pkg="$1"; shift ;;
+    esac
+  done
+  [ -n "$pkg" ] || { usage_uninstall; EXIT=2 die 'missing <pkg>'; }
+
+  local sets_found=()
+  while IFS= read -r line; do sets_found+=("$line"); done < <(find_sets_for_pkg "$pkg")
+  [ "${#sets_found[@]}" -gt 0 ] || { EXIT=4 die "'$pkg' not found in any Brewfile"; }
+
+  local set_name
+  if [ "${#sets_found[@]}" -eq 1 ]; then
+    set_name="${sets_found[0]}"
+  elif is_tty; then
+    set_name="$(printf '%s\n' "${sets_found[@]}" \
+      | gum choose --header "'$pkg' is in multiple sets. Remove from which?")"
+    [ -n "$set_name" ] || { EXIT=2 die 'no set selected'; }
+  else
+    EXIT=2 die "'$pkg' in multiple sets (${sets_found[*]}); run in a TTY to disambiguate"
+  fi
+
+  local file kind kind_flag
+  file="$(brewfile_for_set "$set_name")"
+  kind="$(detect_kind_in_file "$pkg" "$file")"
+  [ -n "$kind" ] || { EXIT=4 die "couldn't determine kind of '$pkg' in Brewfile.$set_name"; }
+  kind_flag="$(kind_to_flag "$kind")"
+
+  if is_tty; then
+    local hint=''
+    [ "$keep_installed" -eq 1 ] && hint=' (keep host install)'
+    gum confirm "Remove '$pkg' from Brewfile.$set_name${hint}?" || {
+      printf 'brewwr: aborted\n' >&2; exit 0
+    }
+  fi
+
+  assert_brew_d_clean
+
+  brew bundle remove "$kind_flag" --file="$file" "$pkg" \
+    || { EXIT=3 die 'brew bundle remove failed'; }
+
+  if [ "$keep_installed" -eq 0 ] && [ "$kind" != 'tap' ]; then
+    local uninstall_args=()
+    [ "$kind" = 'cask' ] && uninstall_args+=(--cask)
+    brew uninstall "${uninstall_args[@]}" "$pkg" \
+      || printf "brewwr: 'brew uninstall %s' reported an issue (continuing)\n" "$pkg" >&2
+  fi
+
+  [ "$no_commit" -eq 0 ] && commit_brewfile remove "$pkg" "$set_name"
+}
+
+# ---------- subcommand: sets ----------
+
+cmd_sets() {
+  if [ $# -gt 0 ]; then
+    cmd_sets_show "$1"
+    return
+  fi
+  local name file desc count
+  {
+    printf 'SET\tDESCRIPTION\tENTRIES\n'
+    while IFS= read -r name; do
+      file="$(brewfile_for_set "$name")"
+      desc="$(set_description "$file")"
+      count="$(brew bundle list --all --file="$file" | wc -l | tr -d ' ')"
+      printf '%s\t%s\t%s\n' "$name" "$desc" "$count"
+    done < <(list_set_names)
+  } | column -t -s $'\t'
+}
+
+cmd_sets_show() {
+  local name="$1" file
+  file="$(brewfile_for_set "$name")"
+  [ -f "$file" ] || { EXIT=2 die "no such set: $name (try 'brewwr sets')"; }
+
+  local section_kind label out
+  for section_kind in taps casks formulae; do
+    case "$section_kind" in
+      taps)     label='TAPS' ;;
+      casks)    label='CASKS' ;;
+      formulae) label='FORMULAS' ;;
+    esac
+    out="$(brew bundle list "--$section_kind" --file="$file" || true)"
+    [ -n "$out" ] || continue
+    printf '%s\n' "$label"
+    printf '%s\n' "$out" | sed 's/^/  /'
+    printf '\n'
+  done
+}
+
+# ---------- main ----------
+
+usage() {
+  cat <<'EOF'
+brewwr — keep install/brew.d/Brewfile.<set> in sync with the host.
+
+Usage:
+  brewwr install <pkg> [-s|--set <name>] [--cask|--formula|--tap]
+                       [--no-install] [--no-commit]
+  brewwr uninstall <pkg> [--keep-installed] [--no-commit]
+  brewwr sets
+  brewwr sets <name>
+EOF
+}
+
+main() {
+  require brew
+  require git
+  require gum 'brew install gum'
+  require jq  'brew install jq'
+
+  DOTFILES_HOME="$(resolve_dotfiles_home)" \
+    || { EXIT=1 die 'could not locate dotfiles repo; set DOTFILES_HOME'; }
+  export DOTFILES_HOME
+
+  [ $# -gt 0 ] || { usage; exit 0; }
+  local sub="$1"; shift
+  case "$sub" in
+    install)   cmd_install "$@" ;;
+    uninstall) cmd_uninstall "$@" ;;
+    sets)      cmd_sets "$@" ;;
+    -h|--help|help) usage ;;
+    *) EXIT=2 die "unknown subcommand: $sub" ;;
+  esac
+}
+
+main "$@"
