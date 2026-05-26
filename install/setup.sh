@@ -38,12 +38,33 @@ function move_files () {
   done
 }
 
+function link_scripts () {
+  # Symlink the whole scripts dir as ~/.scripts so PATH lookups (and edits) are
+  # live without re-running setup. Backs up any prior real directory.
+  src="$(cd "$SCRIPT_PATH/../scripts" && pwd)"
+  dst="$HOME/.scripts"
+
+  if [ -L "$dst" ]; then
+    [ "$(readlink "$dst")" = "$src" ] && { echo "Linked $dst -> $src (already)"; return; }
+    [ -z $DRY_RUN ] && rm "$dst"
+  elif [ -d "$dst" ]; then
+    echo "Backing up existing $dst to $TBACK/.scripts"
+    [ -z $DRY_RUN ] && mv "$dst" "$TBACK/.scripts"
+  elif [ -e "$dst" ]; then
+    echo "Backing up existing $dst to $TBACK/.scripts"
+    [ -z $DRY_RUN ] && mv "$dst" "$TBACK/.scripts"
+  fi
+
+  echo "Linking $dst -> $src"
+  [ -z $DRY_RUN ] && ln -s "$src" "$dst"
+}
+
 if [ ! -d $TBACK ]; then
   mkdir -p $TBACK
 fi
 
 move_files "../dotfiles"
-move_files "../scripts" ".scripts"
+link_scripts
 move_files "../fns" ".fns"
 
 echo "Sourcing ~/.zshrc"

@@ -31,7 +31,13 @@ export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
 export PATH="$HOME/.npm_local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/local/sbin:$HOME/bin:$PATH"
 
 #
-# Export the local .scripts dir
+# Dotfiles repo root. `brewwr` and similar tools self-locate via git,
+# but consumers in the shell (aliases, completions) read this.
+#
+export DOTFILES_HOME="${DOTFILES_HOME:-$HOME/Git/indexzero/dotfiles}"
+
+#
+# Export the local .scripts dir (symlink to $DOTFILES_HOME/scripts)
 #
 export PATH=$HOME/.scripts:$PATH
 
