@@ -3,4 +3,5 @@
 brew "espanso"
 tap "xwmx/taps"
 brew "xwmx/taps/nb"
-brew "cointop"cask "tolaria"
+brew "cointop"
+cask "tolaria"
