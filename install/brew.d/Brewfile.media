@@ -3,3 +3,8 @@
 brew "imagemagick"
 brew "ffmpeg"
 brew "librsvg"
+brew "flac"
+brew "mp3val"
+brew "media-info"
+brew "exiftool"
+brew "clamav"

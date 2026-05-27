@@ -1,6 +1,5 @@
 # Productivity Applications
 
-brew "espanso"
 tap "xwmx/taps"
 brew "xwmx/taps/nb"
 brew "cointop"

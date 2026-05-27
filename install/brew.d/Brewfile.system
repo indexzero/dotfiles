@@ -1,8 +1,8 @@
 # System Utilities
 
 brew "fastfetch"
-brew "only-switch"
-brew "pearcleaner"
+cask "only-switch"
+cask "pearcleaner"
 brew "mole"
 brew "cirruslabs/cli/tart"
 cask "betterdisplay"
