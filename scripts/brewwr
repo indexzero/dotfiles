@@ -197,16 +197,16 @@ Flags:
       --formula      Force formula kind.
       --tap          Force tap kind.
       --no-install   Write to Brewfile only; skip the install.
-      --no-upgrade   Install only <pkg>; do NOT rebundle the whole set. (Default:
-                     brew bundle install runs against the file, upgrading anything
-                     outdated alongside the new entry.)
+      --upgrade      After installing <pkg> and writing the Brewfile, run
+                     `brew bundle install` against the file to upgrade anything
+                     else that is outdated. (Default: install only <pkg>.)
       --no-commit    Leave the diff in the working tree.
   -h, --help
 EOF
 }
 
 cmd_install() {
-  local pkg='' set_name='' forced_kind='' no_install=0 no_upgrade=0 no_commit=0
+  local pkg='' set_name='' forced_kind='' no_install=0 upgrade=0 no_commit=0
   while [ $# -gt 0 ]; do
     case "$1" in
       -s|--set)         set_name="$2"; shift 2 ;;
@@ -214,7 +214,8 @@ cmd_install() {
       --formula|--formulae) forced_kind='formula'; shift ;;
       --tap)            forced_kind='tap'; shift ;;
       --no-install)     no_install=1; shift ;;
-      --no-upgrade)     no_upgrade=1; shift ;;
+      --upgrade)        upgrade=1; shift ;;
+      --no-upgrade)     upgrade=0; shift ;;
       --no-commit)      no_commit=1; shift ;;
       -h|--help)        usage_install; exit 0 ;;
       --)               shift; break ;;
@@ -233,16 +234,42 @@ cmd_install() {
   local file; file="$(brewfile_for_set "$set_name")"
   [ -f "$file" ] || { EXIT=2 die "no such set: $set_name (try 'brewwr sets')"; }
 
-  # Cross-set conflict / idempotency
-  local existing other_sets=()
+  # Cross-set conflict / idempotency.
+  # `brew bundle list` is ruby-heavy and runs once per set, so this scan can
+  # take several seconds with no output otherwise.
+  printf "brewwr: scanning Brewfile.* for '%s'...\n" "$pkg" >&2
+  local existing other_sets=() already_in_set=0
   while IFS= read -r existing; do
     [ -n "$existing" ] || continue
     if [ "$existing" = "$set_name" ]; then
-      printf "brewwr: '%s' already in Brewfile.%s — no-op\n" "$pkg" "$set_name"
-      return 0
+      already_in_set=1
+      continue
     fi
     other_sets+=("$existing")
   done < <(find_sets_for_pkg "$pkg")
+  if [ "$already_in_set" -eq 1 ]; then
+    # In the Brewfile — but is it actually installed on the host? Check before
+    # declaring no-op, otherwise a half-applied prior run wedges us out.
+    local existing_kind installed=0
+    printf "brewwr: '%s' is in Brewfile.%s; checking host install state...\n" "$pkg" "$set_name" >&2
+    existing_kind="$(detect_kind_in_file "$pkg" "$(brewfile_for_set "$set_name")")"
+    case "$existing_kind" in
+      formula) brew list --formula "$pkg" >/dev/null 2>&1 && installed=1 ;;
+      cask)    brew list --cask    "$pkg" >/dev/null 2>&1 && installed=1 ;;
+      tap)     brew tap | grep -Fxq -- "$pkg" && installed=1 ;;
+    esac
+    if [ "$installed" -eq 1 ] || [ "$no_install" -eq 1 ]; then
+      printf "brewwr: '%s' already in Brewfile.%s — no-op\n" "$pkg" "$set_name"
+      return 0
+    fi
+    printf "brewwr: warning: '%s' in Brewfile.%s but not installed on host — installing only %s\n" "$pkg" "$set_name" "$pkg" >&2
+    case "$existing_kind" in
+      tap)     brew tap "$pkg" ;;
+      cask)    brew install --cask "$pkg" ;;
+      formula) brew install "$pkg" ;;
+    esac || { EXIT=3 die "brew install '$pkg' failed"; }
+    return 0
+  fi
   if [ "${#other_sets[@]}" -gt 0 ]; then
     EXIT=5 die "'$pkg' already in Brewfile.${other_sets[0]}; run 'brewwr uninstall --keep-installed $pkg' first, or target that set"
   fi
@@ -261,9 +288,10 @@ cmd_install() {
     # Write only; never touch the host.
     brew bundle add "$kind_flag" --file="$file" "$pkg" \
       || { EXIT=3 die 'brew bundle add failed'; }
-  elif [ "$no_upgrade" -eq 1 ]; then
-    # Install just this package, then write. Skips the implicit whole-file
-    # rebundle that `brew bundle add --install` performs.
+  else
+    # Install <pkg> first so a failure leaves the Brewfile untouched. Note:
+    # `brew bundle add --install` runs install BEFORE appending the entry, so
+    # the new package never gets installed — hence the explicit install here.
     case "$kind" in
       tap)     brew tap "$pkg" ;;
       cask)    brew install --cask "$pkg" ;;
@@ -271,12 +299,11 @@ cmd_install() {
     esac || { EXIT=3 die "brew install '$pkg' failed; Brewfile unchanged"; }
     brew bundle add "$kind_flag" --file="$file" "$pkg" \
       || { EXIT=3 die 'brew bundle add failed'; }
-  else
-    # Default: let `brew bundle add --install` run install against the file,
-    # upgrading anything outdated alongside the new entry. This matches stock
-    # `brew bundle` ergonomics.
-    brew bundle add "$kind_flag" --install --file="$file" "$pkg" \
-      || { EXIT=3 die 'brew bundle add --install failed'; }
+    if [ "$upgrade" -eq 1 ]; then
+      printf "brewwr: --upgrade: running 'brew bundle install --file=%s' (may upgrade other outdated entries)...\n" "$file" >&2
+      brew bundle install --file="$file" \
+        || { EXIT=3 die 'brew bundle install failed'; }
+    fi
   fi
 
   [ "$no_commit" -eq 0 ] && commit_brewfile add "$pkg" "$set_name"
