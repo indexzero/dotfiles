@@ -1,0 +1,165 @@
+#!/usr/bin/env bash
+# hostdiff - Diff this dotfiles repo against the current machine
+# Usage: hostdiff [files|symlinks|brew|mise|all]
+set -euo pipefail
+
+DOTFILES="$(cd "$(dirname "$0")/.." && pwd)"
+
+# ── Output helpers ────────────────────────────────────────────────────────────
+_ok()      { printf "  \033[32m[ok]\033[0m      %s\n" "$*"; }
+_diff()    { printf "  \033[33m[diff]\033[0m    %s\n" "$*"; }
+_missing() { printf "  \033[31m[missing]\033[0m %s\n" "$*"; }
+_skip()    { printf "  \033[2m[skip]\033[0m    %s\n" "$*"; }
+_section() { printf "\n\033[1m── %s\033[0m\n" "$*"; }
+
+# Lines allowed to exist in the live file but not in the dotfiles source.
+# Tools that append to shell files post-install produce these.
+_dynamic_line() {
+  local line="$1"
+  [[ "$line" =~ 'wt config shell init' ]] && return 0
+  [[ "$line" =~ 'GITHUB_TOKEN=' ]] && return 0
+  [[ "$line" =~ '# Added by ' ]] && return 0
+  return 1
+}
+
+# Normalize a file for comparison: strip known dynamic lines and trailing whitespace
+_normalize() {
+  local file="$1"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    _dynamic_line "$line" && continue
+    printf '%s\n' "${line%"${line##*[![:space:]]}"}"
+  done < "$file"
+}
+
+# ── File lens ─────────────────────────────────────────────────────────────────
+check_files() {
+  _section "dotfiles"
+  local any_diff=0
+
+  for src in "$DOTFILES/dotfiles"/.*; do
+    [[ -f "$src" ]] || continue
+    local file dst
+    file="$(basename "$src")"
+    dst="$HOME/$file"
+
+    if [[ ! -e "$dst" ]]; then
+      _missing "$file  →  run: zsh install/setup.sh"
+      any_diff=1
+      continue
+    fi
+
+    local src_norm dst_norm diff_out
+    src_norm="$(_normalize "$src")"
+    dst_norm="$(_normalize "$dst")"
+
+    if [[ "$src_norm" == "$dst_norm" ]]; then
+      _ok "$file"
+    else
+      _diff "$file"
+      diff_out="$(diff <(echo "$src_norm") <(echo "$dst_norm") || true)"
+      echo "$diff_out" | grep '^[<>]' | head -12 | sed 's/^< /    \033[31m- /; s/^> /    \033[32m+ /' | while IFS= read -r l; do printf "%b\033[0m\n" "$l"; done
+      any_diff=1
+    fi
+  done
+
+  return $any_diff
+}
+
+# ── Symlink lens ──────────────────────────────────────────────────────────────
+check_symlinks() {
+  _section "symlinks"
+
+  _check_link() {
+    local _lname="$1" _src="$2" _dst="$3" _cmd="${4:-install/$1}"
+    if [[ ! -e "$_dst" && ! -L "$_dst" ]]; then
+      _missing "$_lname  →  run: zsh $_cmd"
+    elif [[ ! -L "$_dst" ]]; then
+      _diff "$_lname  (real file/dir, not a symlink — run: zsh $_cmd)"
+    elif [[ "$(readlink "$_dst")" != "$_src" ]]; then
+      _diff "$_lname  (→ $(readlink "$_dst"), expected $_src)"
+    else
+      _ok "$_lname"
+    fi
+  }
+
+  _check_link "ghostty"   "$DOTFILES/settings/ghostty"             "$HOME/Library/Application Support/com.mitchellh.ghostty"
+  _check_link "mise"      "$DOTFILES/settings/mise"                "$HOME/Library/Application Support/mise"
+  _check_link "starship"  "$DOTFILES/settings/starship"            "$HOME/Library/Application Support/starship"
+  _check_link "worktrunk" "$DOTFILES/settings/worktrunk/config.toml" "$HOME/.config/worktrunk/config.toml" "install/worktrunk"
+}
+
+# ── Brew lens ─────────────────────────────────────────────────────────────────
+check_brew() {
+  _section "brew"
+
+  if ! command -v brew >/dev/null 2>&1; then
+    _skip "brew not installed"
+    return
+  fi
+
+  local brewfile_dir="$DOTFILES/install/brew.d"
+  local any_diff=0
+
+  for brewfile in "$brewfile_dir"/Brewfile.*; do
+    local bfname out
+    bfname="$(basename "$brewfile")"
+    if out="$(brew bundle check --verbose --file="$brewfile" 2>&1)"; then
+      _ok "$bfname"
+    else
+      _diff "$bfname"
+      echo "$out" | grep -v '^Using\|^Tapping\|^Verifying\|^$\|dependencies are' \
+        | sed 's/^/    /' || true
+      any_diff=1
+    fi
+  done
+
+  return $any_diff
+}
+
+# ── Mise lens ─────────────────────────────────────────────────────────────────
+check_mise() {
+  _section "mise"
+
+  if ! command -v mise >/dev/null 2>&1; then
+    _skip "mise not installed"
+    return
+  fi
+
+  local missing_tools
+  missing_tools="$(XDG_CONFIG_HOME="$HOME/Library/Application Support" \
+    MISE_DATA_DIR="$HOME/.local/share/mise" \
+    mise ls --missing 2>/dev/null | grep -v '^$' || true)"
+
+  if [[ -z "$missing_tools" ]]; then
+    _ok "all tools installed"
+  else
+    while IFS= read -r line; do
+      [[ -z "$line" ]] && continue
+      _missing "$line  →  run: mise install"
+    done <<< "$missing_tools"
+  fi
+}
+
+# ── Dispatch ──────────────────────────────────────────────────────────────────
+MODE="${1:-all}"
+EXIT=0
+
+case "$MODE" in
+  files)    check_files    || EXIT=1 ;;
+  symlinks) check_symlinks || EXIT=1 ;;
+  brew)     check_brew     || EXIT=1 ;;
+  mise)     check_mise     || EXIT=1 ;;
+  all)
+    check_files    || EXIT=1
+    check_symlinks || EXIT=1
+    check_brew     || EXIT=1
+    check_mise     || EXIT=1
+    ;;
+  *)
+    echo "Usage: hostdiff [files|symlinks|brew|mise|all]" >&2
+    exit 1
+    ;;
+esac
+
+echo ""
+exit $EXIT
