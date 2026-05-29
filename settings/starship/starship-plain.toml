@@ -1,0 +1,307 @@
+format = """
+$username\
+$hostname\
+$shlvl\
+$directory\
+$nodejs\
+$golang\
+$rust\
+$bun\
+$deno\
+$terraform\
+$docker_context\
+$kubernetes\
+$gcloud\
+$fill\
+$line_break\
+$jobs\
+$character"""
+
+right_format = """
+${custom.worktree}\
+$git_branch\
+$git_status\
+$cmd_duration\
+$status"""
+
+add_newline = false
+
+# ── Fill ──────────────────────────────────────────────────────────────────────
+[fill]
+symbol = "─"
+style  = "bold black"
+
+# ── Directory ────────────────────────────────────────────────────────────────
+[directory]
+format            = "[$path]($style)"
+style             = "bold cyan"
+truncation_length = 5
+truncate_to_repo  = false
+truncation_symbol = "…/"
+
+# ── Git branch (right) ────────────────────────────────────────────────────────
+[git_branch]
+format = "[$branch]($style)"
+style  = "bold magenta"
+symbol = ""
+
+# ── Git status (right) ────────────────────────────────────────────────────────
+[git_status]
+format     = '([\[$all_status$ahead_behind\]]($style) )'
+style      = "bold red"
+stashed    = "\\$"
+modified   = "!"
+staged     = "+"
+ahead      = ">"
+behind     = "<"
+untracked  = ""
+deleted    = ""
+renamed    = ""
+conflicted = ""
+
+# ── Git worktree indicator (right, linked worktrees only) ─────────────────────
+[custom.worktree]
+disabled    = false
+description = "Indicates when inside a git linked worktree"
+command     = "echo ''"
+when        = '[ "$(git rev-parse --git-dir 2>/dev/null)" != "$(git rev-parse --git-common-dir 2>/dev/null)" ]'
+format      = "[wt]($style) "
+style       = "bold yellow"
+shell       = ["bash", "--noprofile", "--norc", "-euo", "pipefail", "-c"]
+
+# ── Command duration (right) ──────────────────────────────────────────────────
+[cmd_duration]
+format   = "[took $duration]($style) "
+style    = "bold yellow"
+min_time = 2_000
+
+# ── Exit status (right, non-zero only) ────────────────────────────────────────
+[status]
+disabled       = false
+format         = "[$symbol$common_meaning$signal_name$maybe_int]($style) "
+symbol         = "x "
+style          = "bold red"
+success_symbol = ""
+map_symbol     = true
+
+# ── Node.js (mise-only) ──────────────────────────────────────────────────────
+[nodejs]
+format            = " [node $version]($style)"
+style             = "bold green"
+symbol            = ""
+detect_files      = [".tool-versions", "mise.toml", ".mise.toml"]
+detect_extensions = []
+detect_folders    = []
+
+# ── Go (mise-only) ───────────────────────────────────────────────────────────
+[golang]
+format            = " [go $version]($style)"
+style             = "bold cyan"
+symbol            = ""
+detect_files      = [".tool-versions", "mise.toml", ".mise.toml"]
+detect_extensions = []
+detect_folders    = []
+
+# ── Rust (mise-only) ─────────────────────────────────────────────────────────
+[rust]
+format            = " [rust $version]($style)"
+style             = "bold red"
+symbol            = ""
+detect_files      = [".tool-versions", "mise.toml", ".mise.toml"]
+detect_extensions = []
+detect_folders    = []
+
+# ── Bun (mise-only) ──────────────────────────────────────────────────────────
+[bun]
+format            = " [bun $version]($style)"
+style             = "bold yellow"
+symbol            = ""
+detect_files      = [".tool-versions", "mise.toml", ".mise.toml"]
+detect_extensions = []
+detect_folders    = []
+
+# ── Deno (mise-only) ─────────────────────────────────────────────────────────
+[deno]
+format            = " [deno $version]($style)"
+style             = "bold green"
+symbol            = ""
+detect_files      = [".tool-versions", "mise.toml", ".mise.toml"]
+detect_extensions = []
+detect_folders    = []
+
+# ── Terraform workspace ───────────────────────────────────────────────────────
+[terraform]
+disabled = false
+format   = " [tf $workspace]($style)"
+style    = "bold purple"
+symbol   = ""
+
+# ── Python virtualenv ────────────────────────────────────────────────────────
+[python]
+format            = " [py $virtualenv]($style)"
+style             = "bold yellow"
+symbol            = ""
+detect_extensions = []
+detect_files      = []
+detect_folders    = []
+
+# ── Docker context (shows when non-default) ───────────────────────────────────
+[docker_context]
+disabled        = false
+format          = " [docker $context]($style)"
+style           = "bold blue"
+only_with_files = false
+
+# ── Kubernetes ────────────────────────────────────────────────────────────────
+[kubernetes]
+disabled = false
+format   = " [k8s $context(\\($namespace\\))]($style)"
+style    = "bold blue"
+
+# ── gcloud ────────────────────────────────────────────────────────────────────
+[gcloud]
+disabled = false
+format   = " [gcp $account(@$domain)(\\($project\\))]($style)"
+style    = "bold blue"
+
+# ── Shell depth (shows when nested ≥ 2) ──────────────────────────────────────
+[shlvl]
+disabled  = false
+format    = "[(${shlvl})]($style) "
+style     = "bold yellow"
+threshold = 2
+
+# ── Background jobs ──────────────────────────────────────────────────────────
+[jobs]
+format           = "[$symbol]($style)"
+style            = "bold blue"
+symbol           = "* "
+number_threshold = 1
+
+# ── Prompt character ─────────────────────────────────────────────────────────
+[character]
+success_symbol = "[%](bold green)"
+error_symbol   = "[%](bold red)"
+vimcmd_symbol  = "[<](bold green)"
+
+# ── Username (SSH only) ──────────────────────────────────────────────────────
+[username]
+format      = "[$user]($style) in "
+style_user  = "bold yellow"
+show_always = false
+
+# ── Hostname (SSH only) ──────────────────────────────────────────────────────
+[hostname]
+format   = "[$hostname]($style) in "
+style    = "bold green"
+ssh_only = true
+
+# ── Disabled modules ──────────────────────────────────────────────────────────
+[aws]
+disabled = true
+[buf]
+disabled = true
+[c]
+disabled = true
+[cmake]
+disabled = true
+[cobol]
+disabled = true
+[conda]
+disabled = true
+[crystal]
+disabled = true
+[daml]
+disabled = true
+[dart]
+disabled = true
+[dotnet]
+disabled = true
+[elixir]
+disabled = true
+[elm]
+disabled = true
+[env_var]
+disabled = true
+[erlang]
+disabled = true
+[fennel]
+disabled = true
+[gradle]
+disabled = true
+[guix_shell]
+disabled = true
+[haskell]
+disabled = true
+[haxe]
+disabled = true
+[helm]
+disabled = true
+[java]
+disabled = true
+[julia]
+disabled = true
+[kotlin]
+disabled = true
+[lua]
+disabled = true
+[memory_usage]
+disabled = true
+[meson]
+disabled = true
+[nim]
+disabled = true
+[nix_shell]
+disabled = true
+[ocaml]
+disabled = true
+[opa]
+disabled = true
+[openstack]
+disabled = true
+[os]
+disabled = true
+[package]
+disabled = true
+[perl]
+disabled = true
+[php]
+disabled = true
+[pulumi]
+disabled = true
+[purescript]
+disabled = true
+[rlang]
+disabled = true
+[raku]
+disabled = true
+[red]
+disabled = true
+[ruby]
+disabled = true
+[scala]
+disabled = true
+[shell]
+disabled = true
+[singularity]
+disabled = true
+[solidity]
+disabled = true
+[spack]
+disabled = true
+[sudo]
+disabled = true
+[swift]
+disabled = true
+[time]
+disabled = true
+[typst]
+disabled = true
+[vagrant]
+disabled = true
+[vcsh]
+disabled = true
+[vlang]
+disabled = true
+[zig]
+disabled = true

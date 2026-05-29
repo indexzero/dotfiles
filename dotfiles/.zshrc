@@ -170,3 +170,9 @@ esac
 # pnpm end
 
 eval "$(mise activate zsh)"
+
+# Starship — use plain config in Terminal.app (no Nerd Font)
+[[ "$TERM_PROGRAM" == "Apple_Terminal" ]] && \
+  export STARSHIP_CONFIG="$HOME/Library/Application Support/starship/starship-plain.toml"
+
+eval "$(starship init zsh)"
