@@ -4,7 +4,7 @@ tap "unhappychoice/tap"
 
 brew "gcc"
 brew "cmake"
-brew "pyenv"
+brew "mise"   # replaces pyenv + volta + homebrew go — run install/mise after brew bundle
 brew "pipx"
 brew "zig"
 brew "ripgrep"
