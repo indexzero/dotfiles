@@ -171,9 +171,7 @@ esac
 
 eval "$(mise activate zsh)"
 
-# Starship — plain config for Terminal.app (no Nerd Font), full config elsewhere
+# Starship
 export STARSHIP_CONFIG="$HOME/Library/Application Support/starship/starship.toml"
-[[ "$TERM_PROGRAM" == "Apple_Terminal" ]] && \
-  export STARSHIP_CONFIG="$HOME/Library/Application Support/starship/starship-plain.toml"
 
 eval "$(starship init zsh)"
