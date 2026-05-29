@@ -5,7 +5,7 @@
 worktree-path = "{{ repo_path }}/../{{ repo }}-worktrees/{{ branch | sanitize }}"
 
 [commit.generation]
-command = "CLAUDECODE= MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=haiku --tools='' --disable-slash-commands --setting-sources='' --system-prompt=''"
+command = "CLAUDECODE= MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=sonnet --tools='' --disable-slash-commands --setting-sources='' --system-prompt=''"
 
 # Personal style guidance injected into every commit prompt.
 # Project .config/wt.toml can add its own template-append on top of this.
