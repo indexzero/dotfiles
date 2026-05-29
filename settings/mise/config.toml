@@ -1,0 +1,12 @@
+[settings]
+legacy_version_file = true
+experimental = true
+jobs = 4
+
+[tools]
+node = "lts"
+python = "latest"
+go = "latest"
+bun = "latest"
+deno = "latest"
+rust = "latest"

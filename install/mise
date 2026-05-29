@@ -1,0 +1,41 @@
+#!/usr/bin/env zsh
+
+set -e
+
+DOTFILES="$(cd "${0:A:h}/.." && pwd)"
+SRC="$DOTFILES/settings/mise"
+DST="$HOME/Library/Application Support/mise"
+BACK="$HOME/.backup/mise"
+
+if [ -L "$DST" ]; then
+  if [ "$(readlink "$DST")" = "$SRC" ]; then
+    echo "Linked $DST -> $SRC (already)"
+  else
+    echo "Relinking $DST -> $SRC"
+    rm "$DST" && ln -s "$SRC" "$DST"
+  fi
+elif [ -e "$DST" ]; then
+  echo "Backing up existing $DST to $BACK"
+  mkdir -p "$(dirname "$BACK")"
+  mv "$DST" "$BACK"
+  ln -s "$SRC" "$DST"
+else
+  mkdir -p "$HOME/Library/Application Support"
+  echo "Linking $DST -> $SRC"
+  ln -s "$SRC" "$DST"
+fi
+
+if ! command -v mise >/dev/null 2>&1; then
+  echo "Installing mise via brew..."
+  brew install mise
+fi
+
+echo "mise $(mise --version)"
+echo "Installing global tools..."
+mise install
+
+ZSHRC="$HOME/.zshrc"
+if ! grep -q 'mise activate' "$ZSHRC" 2>/dev/null; then
+  printf '\neval "$(mise activate zsh)"\n' >> "$ZSHRC"
+  echo "Added mise activation to $ZSHRC"
+fi

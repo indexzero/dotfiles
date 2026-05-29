@@ -1,0 +1,27 @@
+#!/usr/bin/env zsh
+
+# Install ghostty config by symlinking settings/ghostty ->
+# ~/Library/Application Support/com.mitchellh.ghostty
+
+set -e
+
+DOTFILES="$(cd "${0:A:h}/.." && pwd)"
+SRC="$DOTFILES/settings/ghostty"
+DST="$HOME/Library/Application Support/com.mitchellh.ghostty"
+BACK="$HOME/.backup/com.mitchellh.ghostty"
+
+if [ -L "$DST" ]; then
+  if [ "$(readlink "$DST")" = "$SRC" ]; then
+    echo "Linked $DST -> $SRC (already)"
+    exit 0
+  fi
+  echo "Removing stale symlink $DST"
+  rm "$DST"
+elif [ -e "$DST" ]; then
+  echo "Backing up existing $DST to $BACK"
+  mkdir -p "$(dirname "$BACK")"
+  mv "$DST" "$BACK"
+fi
+
+echo "Linking $DST -> $SRC"
+ln -s "$SRC" "$DST"
