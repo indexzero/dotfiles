@@ -2,3 +2,17 @@
 
 # Install atuin - magical shell history
 curl --proto '=https' --tlsv1.2 -LsSf https://setup.atuin.sh | sh
+
+# Ensure atuin is on PATH for the hook install step below
+command -v atuin >/dev/null || export PATH="$HOME/.atuin/bin:$PATH"
+
+# Register atuin agent hooks for AI coding agents.
+# Each writes to that agent's own config file:
+#   claude-code -> ~/.claude/settings.json
+#   codex       -> ~/.codex/hooks.json
+#   pi          -> ~/.pi/agent/extensions/atuin.ts
+if command -v atuin >/dev/null; then
+  command -v claude >/dev/null && atuin hook install claude-code
+  command -v codex  >/dev/null && atuin hook install codex
+  command -v pi     >/dev/null && atuin hook install pi
+fi

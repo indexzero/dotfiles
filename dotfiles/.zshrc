@@ -135,7 +135,7 @@ unset key
 (( ${+functions[compdef]} )) || { autoload -Uz compinit && compinit -C; }
 
 # Load ~/.bash_prompt, ~/.exports, ~/.aliases, ~/.functions and ~/.extra
-# ~/.extra can be used for settings you don’t want to commit
+# ~/.extra can be used for settings you don't want to commit
 for file in ~/.{exports,aliases,functions,extra,private}; do
   [ -r "$file" ] && source "$file"
 done
@@ -147,42 +147,31 @@ export LDFLAGS="-L/usr/local/opt/ruby/lib"
 export CPPFLAGS="-I/usr/local/opt/ruby/include"
 export PKG_CONFIG_PATH="/usr/local/opt/ruby/lib/pkgconfig"
 
-export VOLTA_HOME="$HOME/.volta"
-export PATH="$VOLTA_HOME/bin:$PATH"
-
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-# >>> machine generated >>>
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/Users/cjr/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/Users/cjr/anaconda3/etc/profile.d/conda.sh" ]; then
-        . "/Users/cjr/anaconda3/etc/profile.d/conda.sh"
-    else
-        export PATH="/Users/cjr/anaconda3/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
-
-
 # The next line updates PATH for the Google Cloud SDK.
-if [ -f "/$HOME/google-cloud-sdk/path.zsh.inc" ]; then . "$HOME/google-cloud-sdk/path.zsh.inc"; fi
+if [ -f "$HOME/google-cloud-sdk/path.zsh.inc" ]; then . "$HOME/google-cloud-sdk/path.zsh.inc"; fi
 
 # The next line enables shell command completion for gcloud.
 if [ -f "$HOME/google-cloud-sdk/completion.zsh.inc" ]; then . "$HOME/google-cloud-sdk/completion.zsh.inc"; fi
 
 export GITHUB_TOKEN=$(gh auth token)
-export PATH="$PATH:$HOME/go/bin"
+
 . "$HOME/.atuin/bin/env"
 
 eval "$(atuin init zsh)"
 
-export PNPM_HOME="$HOME/Library/Application Support/pnpm"
+# pnpm
+export PNPM_HOME="$HOME/Library/pnpm"
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
+# pnpm end
+
+eval "$(mise activate zsh)"
+
+# Starship
+export STARSHIP_CONFIG="$HOME/Library/Application Support/starship/starship.toml"
+
+eval "$(starship init zsh)"

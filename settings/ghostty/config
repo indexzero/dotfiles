@@ -47,7 +47,7 @@
 # This can be a single font family, or a comma-separated list of font families.
 # Ghostty will try to use the first available font from the list. If the font family
 # is not available, Ghostty will fall back to the default font, "Iosevka".
-font-family = "Menlo"
+font-family = "MesloLGM Nerd Font"
 font-size = 24
 
 # Theme
