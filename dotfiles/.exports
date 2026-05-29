@@ -1,24 +1,19 @@
 #
 # Some sane exports. Let's start with XDG
 #
-export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/Library/Preferences}"
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/Library/Application Support}"
 export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/Library/Caches}"
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/Library/Application Support}"
-export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/Library/State}"
+export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/Library/Application Support}"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-${TMPDIR}$(id -u)/.run}"
+export MISE_DATA_DIR="${MISE_DATA_DIR:-$HOME/.local/share/mise}"
+export MISE_STATE_DIR="${MISE_STATE_DIR:-$HOME/.local/state/mise}"
 
 if [[ $COLORTERM = gnome-* && $TERM = xterm ]] && infocmp gnome-256color >/dev/null 2>&1; then
   export TERM=gnome-256color
 elif infocmp xterm-256color >/dev/null 2>&1; then
   export TERM=xterm-256color
 fi
-
-#
-# PyEnv
-# https://github.com/pyenv/pyenv#set-up-your-shell-environment-for-pyenv
-#
-export PYENV_ROOT="$HOME/.pyenv"
-command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
 
 #
 # MacPorts Installer addition on 2011-12-01_at_23:41:50: adding an appropriate PATH variable for use with MacPorts.
@@ -28,7 +23,7 @@ export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
 #
 # Make npm then homebrew the priority for all executables before npm
 #
-export PATH="$HOME/.npm_local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/local/sbin:$HOME/bin:$PATH"
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/local/sbin:$HOME/bin:$PATH"
 
 #
 # Dotfiles repo root. `brewwr` and similar tools self-locate via git,
@@ -60,7 +55,7 @@ export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 
 #
 # GO FOR THE GO GODS
-# 
+#
 export PATH="$HOME/go/bin:$PATH"
 
 #
