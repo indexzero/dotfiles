@@ -1,0 +1,32 @@
+#!/usr/bin/env zsh
+set -e
+
+DOTFILES="$(cd "${0:A:h}/.." && pwd)"
+SRC="$DOTFILES/settings/worktrunk/config.toml"
+DST_DIR="$HOME/.config/worktrunk"
+DST="$DST_DIR/config.toml"
+BACK="$HOME/.backup/worktrunk-config.toml"
+
+if ! command -v wt >/dev/null 2>&1; then
+  echo "Installing worktrunk via brew..."
+  brew install worktrunk
+fi
+
+echo "worktrunk $(wt --version 2>/dev/null || echo '(version unknown)')"
+
+mkdir -p "$DST_DIR"
+
+if [ -L "$DST" ]; then
+  if [ "$(readlink "$DST")" = "$SRC" ]; then
+    echo "Linked $DST -> $SRC (already)"
+    exit 0
+  fi
+  rm "$DST"
+elif [ -f "$DST" ]; then
+  echo "Backing up existing $DST to $BACK"
+  cp "$DST" "$BACK"
+  rm "$DST"
+fi
+
+echo "Linking $DST -> $SRC"
+ln -s "$SRC" "$DST"
