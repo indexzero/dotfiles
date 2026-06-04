@@ -1,0 +1,18 @@
+#!/bin/zsh
+
+# Holepunch / Pear toolchain.
+#
+# Must be npm, NOT pnpm: gip-transport ships a bin named `git-remote-git+pear`
+# (git's remote helper for `git+pear://` URLs) and pnpm silently drops any bin
+# whose name contains `+`, so the helper never lands on PATH and clones fail
+# with: git: 'remote-git+pear' is not a git command.
+# npm links it correctly. Neither package has install scripts, so they're fine
+# under npm_config_ignore_scripts=true (see .security). bare-runtime ships the
+# prebuilt `bare` binary inside the tarball.
+
+set -x;
+
+npm i -g bare-runtime  # `bare` runtime — gip's git-remote helper runs on it
+npm i -g gip-transport # git+pear:// transport: git-remote-git+pear, git-pear, gip
+
+set +x;
