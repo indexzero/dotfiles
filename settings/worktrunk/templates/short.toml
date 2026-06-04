@@ -9,11 +9,10 @@ No colon after the closing parenthesis. Subject line soft limit: 50 chars.
 
 Valid types:
   fix, feat, refactor, chore, doc, build, dist, test, infra, data, nit,
-  close, spv, skunkworks, agents
+  spv, skunkworks, agents
 
-Common topics (adjust per repo):
-  argo, ci, deps, docker, duckdb, infrastructure, integration,
-  lockfiles, monorepo, workflow
+Common topics (investigate commits per repo to build this list):
+  ci, deps, docker, <pkg>, infra, integration, monorepo, workflow
 
 Rules:
 - One type and one topic per commit
