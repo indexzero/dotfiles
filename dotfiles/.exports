@@ -70,6 +70,11 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 #
+# PEAR FOR THE PEAR GODS (holepunch runtime)
+#
+export PATH="$XDG_DATA_HOME/pear/bin:$PATH"
+
+#
 # Disable telemetry for everything that supports it
 # (e.g. claude)
 #
