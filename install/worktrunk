@@ -3,7 +3,10 @@ set -e
 
 DOTFILES="$(cd "${0:A:h}/.." && pwd)"
 SRC="$DOTFILES/settings/worktrunk/config.toml"
-DST_DIR="$HOME/.config/worktrunk"
+# worktrunk follows XDG_CONFIG_HOME (see dotfiles/.exports, which points it at
+# ~/Library/Application Support on macOS). Resolve the destination the same way
+# so our symlink lands where `wt` actually reads its config.
+DST_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/worktrunk"
 DST="$DST_DIR/config.toml"
 BACK="$HOME/.backup/worktrunk-config.toml"
 
