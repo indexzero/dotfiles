@@ -1,0 +1,37 @@
+#!/usr/bin/env zsh
+set -e
+
+# Install the Google Cloud SDK. Idempotent.
+
+# ~/google-cloud-sdk is what .zshrc sources, not the Homebrew prefix.
+SDK_DIR="$HOME/google-cloud-sdk"
+GCLOUD="$SDK_DIR/bin/gcloud"
+TARBALL_URL="https://dl.google.com/dl/cloudsdk/channels/rapid/google-cloud-sdk.tar.gz"
+
+GCLOUD_COMPONENTS=(
+  gke-gcloud-auth-plugin
+)
+
+if [ -x "$GCLOUD" ]; then
+  echo "Google Cloud SDK already installed at $SDK_DIR"
+  echo "Updating components..."
+  "$GCLOUD" components update --quiet
+else
+  echo "Installing Google Cloud SDK into $SDK_DIR..."
+  tmp="$(mktemp -t gcloud.XXXXXX).tar.gz"
+  trap 'rm -f "$tmp"' EXIT
+  curl -fsSL -o "$tmp" "$TARBALL_URL"
+  tar -xzf "$tmp" -C "$HOME"
+  # .zshrc handles PATH and completion, so the installer touches no rc files.
+  "$SDK_DIR/install.sh" --quiet --path-update false --command-completion false
+fi
+
+echo "gcloud $("$GCLOUD" --version 2>/dev/null | head -1 | awk '{print $NF}')"
+echo ""
+
+echo "Installing components: ${GCLOUD_COMPONENTS[*]}"
+"$GCLOUD" components install "${GCLOUD_COMPONENTS[@]}" --quiet
+
+echo ""
+echo "Done. gcloud is on PATH in new shells via ~/.zshrc."
+echo "Next, run 'gcloud init' (interactive) to authenticate."
