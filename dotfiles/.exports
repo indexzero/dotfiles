@@ -70,11 +70,6 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
 #
-# PEAR FOR THE PEAR GODS (holepunch runtime)
-#
-export PATH="$XDG_DATA_HOME/pear/bin:$PATH"
-
-#
 # Disable telemetry for everything that supports it
 # (e.g. claude)
 #
@@ -88,6 +83,12 @@ export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
 export CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR=1
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/Library/bin:$PATH"
+
+#
+# PEAR FOR THE PEAR GODS (holepunch runtime).
+# Must come after .local/bin so pear/bin/pear wins over .local/bin/pear.
+#
+export PATH="$XDG_DATA_HOME/pear/bin:$PATH"
 
 #
 # Security hardening
