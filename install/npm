@@ -1,16 +1,73 @@
 #!/bin/zsh
 
-set -x;
+# npm — install global npm-ecosystem packages from install/npm.d/globals.<set>.
+#
+# Each non-comment line is "<manager> <pkg>" where manager ∈ npm | pnpm | bun.
+# Mirrors install/brew + brew.d. Use scripts/npmwr to add/remove entries so the
+# globals files stay in sync with the host.
 
-npm i -g vbump
-npm i -g git-semver2-tag
-npm i -g json
-npm i -g http-server
-npm i -g fx
-npm i -g yarn
-npm i -g @builder.io/micro-agent
-npm i -g githuman
-npm i -g @zeeg/dex
-yarn config set --home enableTelemetry 0
+set -e
 
-set +x;
+SCRIPT_DIR="${0:A:h}"
+NPM_D="$SCRIPT_DIR/npm.d"
+
+# Parse options
+SET=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --set|-s)
+            SET="$2"
+            shift 2
+            ;;
+        --help|-h)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  --set, -s <name>  Install only globals.<name> (cli, dev, llms, docs, ...)"
+            echo "  --help, -h        Show this help message"
+            echo ""
+            echo "Without options, installs every set in $NPM_D."
+            echo "Manage entries with: scripts/npmwr install|uninstall|sets"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+install_pkg() {
+    local mgr="$1" pkg="$2"
+    echo "  $mgr -> $pkg"
+    case "$mgr" in
+        npm)  npm install -g "$pkg" ;;
+        pnpm) pnpm add -g "$pkg" ;;
+        bun)  bun add -g "$pkg" ;;
+        *)    echo "  skipping unknown manager: $mgr" >&2 ;;
+    esac
+}
+
+install_file() {
+    local file="$1"
+    [[ -f "$file" ]] || { echo "Error: no such set file: $file" >&2; exit 1; }
+    echo "Installing from ${file##*/}..."
+    # Read manager + pkg, skipping blank lines and comments.
+    local mgr pkg _rest
+    while read -r mgr pkg _rest; do
+        [[ -z "$mgr" || "$mgr" == \#* ]] && continue
+        [[ -n "$pkg" ]] || continue
+        install_pkg "$mgr" "$pkg"
+    done < "$file"
+}
+
+if [[ -n "$SET" ]]; then
+    install_file "$NPM_D/globals.$SET"
+else
+    for f in "$NPM_D"/globals.*; do
+        [[ -e "$f" ]] || continue
+        install_file "$f"
+    done
+fi
+
+echo "Installation complete!"

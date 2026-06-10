@@ -1,0 +1,8 @@
+# Development & release tooling
+npm vbump
+npm git-semver2-tag
+npm @zeeg/dex
+
+# yarn is itself a package manager; install on demand, then:
+#   yarn config set --home enableTelemetry 0
+# npm yarn

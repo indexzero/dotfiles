@@ -1,0 +1,428 @@
+#!/usr/bin/env bash
+# npmwr — npm-ecosystem write.
+#
+# The npm-world analogue of brewwr. Keeps install/npm.d/globals.<set> in sync
+# with the globally-installed packages on the host across npm / pnpm / bun.
+# Each line in a globals file is "<manager> <pkg>". Adds: set selection (gum),
+# manager selection, cross-set conflict detection, and a dist(npm) auto-commit.
+#
+# Usage: npmwr <install|uninstall|sets> [args]
+
+set -euo pipefail
+
+# ---------- self-location ----------
+
+self_path() {
+  local s="${BASH_SOURCE[0]}"
+  while [ -L "$s" ]; do
+    local target
+    target="$(readlink "$s")"
+    case "$target" in
+      /*) s="$target" ;;
+      *)  s="$(cd "$(dirname "$s")" && pwd)/$target" ;;
+    esac
+  done
+  printf '%s\n' "$s"
+}
+
+resolve_dotfiles_home() {
+  local script_dir candidate
+  script_dir="$(cd "$(dirname "$(self_path)")" && pwd)"
+  if candidate="$(git -C "$script_dir" rev-parse --show-toplevel 2>/dev/null)" \
+      && [ -d "$candidate/install/npm.d" ]; then
+    printf '%s\n' "$candidate"
+    return 0
+  fi
+  if [ -n "${DOTFILES_HOME:-}" ] && [ -d "$DOTFILES_HOME/install/npm.d" ]; then
+    printf '%s\n' "$DOTFILES_HOME"
+    return 0
+  fi
+  return 1
+}
+
+# ---------- helpers ----------
+
+die() { printf 'npmwr: %s\n' "$*" >&2; exit "${EXIT:-1}"; }
+
+require() {
+  command -v "$1" >/dev/null 2>&1 \
+    || { EXIT=1 die "required command '$1' not on PATH${2:+ ($2)}"; }
+}
+
+is_tty() { [ -t 0 ] && [ -t 1 ]; }
+
+# Append a newline if the file is non-empty and lacks a trailing one.
+ensure_trailing_newline() {
+  local f="$1"
+  [ -s "$f" ] || return 0
+  [ -z "$(tail -c1 -- "$f")" ] || printf '\n' >> "$f"
+}
+
+globals_dir()        { printf '%s/install/npm.d\n' "$DOTFILES_HOME"; }
+globals_for_set()    { printf '%s/globals.%s\n' "$(globals_dir)" "$1"; }
+globals_rel_for_set(){ printf 'install/npm.d/globals.%s\n' "$1"; }
+
+# Iterate set names (suffix only).
+list_set_names() {
+  local f base
+  for f in "$(globals_dir)"/globals.*; do
+    [ -e "$f" ] || continue
+    base="${f##*/}"
+    printf '%s\n' "${base#globals.}"
+  done
+}
+
+set_description() {
+  local line
+  line="$(grep -m1 '^# ' "$1" 2>/dev/null || true)"
+  printf '%s\n' "${line#\# }"
+}
+
+# Emit "<manager>\t<pkg>" for each real entry in a globals file, skipping
+# blank lines and comments.
+list_entries() {
+  awk '
+    /^[[:space:]]*#/ { next }
+    NF >= 2          { print $1 "\t" $2 }
+  ' "$1"
+}
+
+# Lists set names that contain <pkg>, one per line. Empty output = not found.
+find_sets_for_pkg() {
+  local pkg="$1" name file
+  while IFS= read -r name; do
+    file="$(globals_for_set "$name")"
+    if list_entries "$file" | cut -f2 | grep -Fxq -- "$pkg"; then
+      printf '%s\n' "$name"
+    fi
+  done < <(list_set_names)
+}
+
+# Manager recorded for <pkg> in <file>. Empty output = not present.
+detect_manager_in_file() {
+  local pkg="$1" file="$2"
+  list_entries "$file" | awk -F'\t' -v p="$pkg" '$2 == p { print $1; exit }'
+}
+
+# ---------- package-manager adapters ----------
+
+valid_manager() { case "$1" in npm|pnpm|bun) return 0 ;; *) return 1 ;; esac; }
+
+mgr_install() { # <manager> <pkg>
+  case "$1" in
+    npm)  npm install -g "$2" ;;
+    pnpm) pnpm add -g "$2" ;;
+    bun)  bun add -g "$2" ;;
+  esac
+}
+
+mgr_uninstall() { # <manager> <pkg>
+  case "$1" in
+    npm)  npm uninstall -g "$2" ;;
+    pnpm) pnpm remove -g "$2" ;;
+    bun)  bun remove -g "$2" ;;
+  esac
+}
+
+# Exit 0 if <pkg> is currently installed globally under <manager>.
+mgr_is_installed() { # <manager> <pkg>
+  case "$1" in
+    npm)  npm ls -g "$2" >/dev/null 2>&1 ;;
+    pnpm) pnpm ls -g --depth=0 --json 2>/dev/null \
+            | jq -e --arg p "$2" '.[0].dependencies[$p] // empty' >/dev/null 2>&1 ;;
+    bun)  [ -e "${BUN_INSTALL:-$HOME/.bun}/install/global/node_modules/$2" ] ;;
+  esac
+}
+
+prompt_set() {
+  local name desc choices=() pick
+  while IFS= read -r name; do
+    desc="$(set_description "$(globals_for_set "$name")")"
+    choices+=("$name — $desc")
+  done < <(list_set_names)
+  [ "${#choices[@]}" -gt 0 ] || { EXIT=1 die "no globals.<set> files found in $(globals_dir)"; }
+  pick="$(printf '%s\n' "${choices[@]}" | gum choose --header 'Which set?')"
+  [ -n "$pick" ] || { EXIT=2 die 'no set selected'; }
+  printf '%s\n' "${pick%% *}"
+}
+
+prompt_manager() {
+  local pick
+  pick="$(printf 'pnpm\nnpm\nbun\n' | gum choose --header 'Which package manager?')"
+  [ -n "$pick" ] || { EXIT=2 die 'no manager selected'; }
+  printf '%s\n' "$pick"
+}
+
+assert_npm_d_clean() {
+  local dirty
+  dirty="$(git -C "$DOTFILES_HOME" status --porcelain -- install/npm.d/)"
+  [ -z "$dirty" ] \
+    || { EXIT=6 die "install/npm.d/ has uncommitted changes; commit or stash first"$'\n'"$dirty"; }
+}
+
+commit_globals() {
+  local action="$1" pkg="$2" set_name="$3"
+  local rel; rel="$(globals_rel_for_set "$set_name")"
+  git -C "$DOTFILES_HOME" add -- "$rel"
+  if git -C "$DOTFILES_HOME" diff --cached --quiet -- "$rel"; then
+    return 0
+  fi
+  local prep
+  case "$action" in
+    add)    prep='to' ;;
+    remove) prep='from' ;;
+    *) EXIT=1 die "internal: bad commit action '$action'" ;;
+  esac
+  git -C "$DOTFILES_HOME" commit -m "dist(npm) $action $pkg $prep globals.$set_name" >/dev/null
+  printf 'npmwr: committed %s %s %s globals.%s\n' "$action" "$pkg" "$prep" "$set_name"
+}
+
+# Append "<manager> <pkg>" to a globals file with a guaranteed newline.
+add_entry() {
+  local file="$1" mgr="$2" pkg="$3"
+  ensure_trailing_newline "$file"
+  printf '%s %s\n' "$mgr" "$pkg" >> "$file"
+}
+
+# Drop the line declaring <pkg> from a globals file, preserving comments.
+remove_entry() {
+  local file="$1" pkg="$2" tmp
+  tmp="$(mktemp)"
+  awk -v p="$pkg" '
+    /^[[:space:]]*#/ { print; next }
+    NF >= 2 && $2 == p { next }
+    { print }
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
+}
+
+# ---------- subcommand: install ----------
+
+usage_install() {
+  cat <<'EOF'
+Usage: npmwr install <pkg> [flags]
+
+Flags:
+  -s, --set <name>       Target globals.<name>. Prompts via gum if omitted.
+  -m, --manager <mgr>    npm | pnpm | bun. Prompts via gum if omitted.
+      --no-install       Write to the globals file only; skip the install
+                         (use when the package is already installed globally).
+      --no-commit        Leave the diff in the working tree.
+  -h, --help
+EOF
+}
+
+cmd_install() {
+  local pkg='' set_name='' manager='' no_install=0 no_commit=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      -s|--set)      set_name="$2"; shift 2 ;;
+      -m|--manager)  manager="$2"; shift 2 ;;
+      --no-install)  no_install=1; shift ;;
+      --no-commit)   no_commit=1; shift ;;
+      -h|--help)     usage_install; exit 0 ;;
+      --)            shift; break ;;
+      -*)            EXIT=2 die "unknown flag: $1" ;;
+      *)
+        [ -z "$pkg" ] || { EXIT=2 die "unexpected arg: $1"; }
+        pkg="$1"; shift ;;
+    esac
+  done
+  [ -n "$pkg" ] || { usage_install; EXIT=2 die 'missing <pkg>'; }
+
+  if [ -z "$set_name" ]; then
+    is_tty || { EXIT=2 die '--set is required when not running in a TTY'; }
+    set_name="$(prompt_set)"
+  fi
+  local file; file="$(globals_for_set "$set_name")"
+  [ -f "$file" ] || { EXIT=2 die "no such set: $set_name (try 'npmwr sets')"; }
+
+  if [ -z "$manager" ]; then
+    is_tty || { EXIT=2 die '--manager is required when not running in a TTY'; }
+    manager="$(prompt_manager)"
+  fi
+  valid_manager "$manager" || { EXIT=2 die "unknown manager: $manager (npm|pnpm|bun)"; }
+  require "$manager"
+
+  # Cross-set conflict / idempotency.
+  local existing other_sets=() already_in_set=0
+  while IFS= read -r existing; do
+    [ -n "$existing" ] || continue
+    if [ "$existing" = "$set_name" ]; then
+      already_in_set=1
+      continue
+    fi
+    other_sets+=("$existing")
+  done < <(find_sets_for_pkg "$pkg")
+
+  if [ "$already_in_set" -eq 1 ]; then
+    # Declared in this set already — but is it actually on the host?
+    local existing_mgr
+    existing_mgr="$(detect_manager_in_file "$pkg" "$file")"
+    if [ "$no_install" -eq 1 ] || mgr_is_installed "$existing_mgr" "$pkg"; then
+      printf "npmwr: '%s' already in globals.%s — no-op\n" "$pkg" "$set_name"
+      return 0
+    fi
+    printf "npmwr: warning: '%s' in globals.%s but not installed — installing via %s\n" \
+      "$pkg" "$set_name" "$existing_mgr" >&2
+    mgr_install "$existing_mgr" "$pkg" || { EXIT=3 die "$existing_mgr install '$pkg' failed"; }
+    return 0
+  fi
+  if [ "${#other_sets[@]}" -gt 0 ]; then
+    EXIT=5 die "'$pkg' already in globals.${other_sets[0]}; run 'npmwr uninstall --keep-installed $pkg' first, or target that set"
+  fi
+
+  assert_npm_d_clean
+
+  if [ "$no_install" -eq 0 ]; then
+    # Install first so a failure leaves the globals file untouched.
+    mgr_install "$manager" "$pkg" \
+      || { EXIT=3 die "$manager install '$pkg' failed; globals.$set_name unchanged"; }
+  fi
+
+  add_entry "$file" "$manager" "$pkg"
+
+  [ "$no_commit" -eq 0 ] && commit_globals add "$pkg" "$set_name"
+}
+
+# ---------- subcommand: uninstall ----------
+
+usage_uninstall() {
+  cat <<'EOF'
+Usage: npmwr uninstall <pkg> [flags]
+
+Flags:
+      --keep-installed  Remove from the globals file but skip the global uninstall.
+      --no-commit       Leave the diff in the working tree.
+  -h, --help
+EOF
+}
+
+cmd_uninstall() {
+  local pkg='' keep_installed=0 no_commit=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --keep-installed) keep_installed=1; shift ;;
+      --no-commit)      no_commit=1; shift ;;
+      -h|--help)        usage_uninstall; exit 0 ;;
+      --)               shift; break ;;
+      -*)               EXIT=2 die "unknown flag: $1" ;;
+      *)
+        [ -z "$pkg" ] || { EXIT=2 die "unexpected arg: $1"; }
+        pkg="$1"; shift ;;
+    esac
+  done
+  [ -n "$pkg" ] || { usage_uninstall; EXIT=2 die 'missing <pkg>'; }
+
+  local sets_found=()
+  while IFS= read -r line; do sets_found+=("$line"); done < <(find_sets_for_pkg "$pkg")
+  [ "${#sets_found[@]}" -gt 0 ] || { EXIT=4 die "'$pkg' not found in any globals.<set>"; }
+
+  local set_name
+  if [ "${#sets_found[@]}" -eq 1 ]; then
+    set_name="${sets_found[0]}"
+  elif is_tty; then
+    set_name="$(printf '%s\n' "${sets_found[@]}" \
+      | gum choose --header "'$pkg' is in multiple sets. Remove from which?")"
+    [ -n "$set_name" ] || { EXIT=2 die 'no set selected'; }
+  else
+    EXIT=2 die "'$pkg' in multiple sets (${sets_found[*]}); run in a TTY to disambiguate"
+  fi
+
+  local file manager
+  file="$(globals_for_set "$set_name")"
+  manager="$(detect_manager_in_file "$pkg" "$file")"
+  [ -n "$manager" ] || { EXIT=4 die "couldn't determine manager of '$pkg' in globals.$set_name"; }
+
+  if is_tty; then
+    local hint=''
+    [ "$keep_installed" -eq 1 ] && hint=' (keep global install)'
+    gum confirm "Remove '$pkg' from globals.$set_name${hint}?" || {
+      printf 'npmwr: aborted\n' >&2; exit 0
+    }
+  fi
+
+  assert_npm_d_clean
+
+  remove_entry "$file" "$pkg"
+
+  if [ "$keep_installed" -eq 0 ]; then
+    require "$manager"
+    mgr_uninstall "$manager" "$pkg" \
+      || printf "npmwr: '%s uninstall %s' reported an issue (continuing)\n" "$manager" "$pkg" >&2
+  fi
+
+  [ "$no_commit" -eq 0 ] && commit_globals remove "$pkg" "$set_name"
+}
+
+# ---------- subcommand: sets ----------
+
+cmd_sets() {
+  if [ $# -gt 0 ]; then
+    cmd_sets_show "$1"
+    return
+  fi
+  local name file desc count
+  {
+    printf 'SET\tDESCRIPTION\tENTRIES\n'
+    while IFS= read -r name; do
+      file="$(globals_for_set "$name")"
+      desc="$(set_description "$file")"
+      count="$(list_entries "$file" | wc -l | tr -d ' ')"
+      printf '%s\t%s\t%s\n' "$name" "$desc" "$count"
+    done < <(list_set_names)
+  } | column -t -s $'\t'
+}
+
+cmd_sets_show() {
+  local name="$1" file
+  file="$(globals_for_set "$name")"
+  [ -f "$file" ] || { EXIT=2 die "no such set: $name (try 'npmwr sets')"; }
+
+  local mgr label out
+  for mgr in npm pnpm bun; do
+    out="$(list_entries "$file" | awk -F'\t' -v m="$mgr" '$1 == m { print $2 }')"
+    [ -n "$out" ] || continue
+    label="$(printf '%s' "$mgr" | tr '[:lower:]' '[:upper:]')"
+    printf '%s\n' "$label"
+    printf '%s\n' "$out" | sed 's/^/  /'
+    printf '\n'
+  done
+}
+
+# ---------- main ----------
+
+usage() {
+  cat <<'EOF'
+npmwr — keep install/npm.d/globals.<set> in sync with global npm/pnpm/bun packages.
+
+Usage:
+  npmwr install <pkg> [-s|--set <name>] [-m|--manager npm|pnpm|bun]
+                      [--no-install] [--no-commit]
+  npmwr uninstall <pkg> [--keep-installed] [--no-commit]
+  npmwr sets
+  npmwr sets <name>
+EOF
+}
+
+main() {
+  require git
+  require gum 'brew install gum'
+  require jq  'brew install jq'
+
+  DOTFILES_HOME="$(resolve_dotfiles_home)" \
+    || { EXIT=1 die 'could not locate dotfiles repo; set DOTFILES_HOME'; }
+  export DOTFILES_HOME
+
+  [ $# -gt 0 ] || { usage; exit 0; }
+  local sub="$1"; shift
+  case "$sub" in
+    install)   cmd_install "$@" ;;
+    uninstall) cmd_uninstall "$@" ;;
+    sets)      cmd_sets "$@" ;;
+    -h|--help|help) usage ;;
+    *) EXIT=2 die "unknown subcommand: $sub" ;;
+  esac
+}
+
+main "$@"
