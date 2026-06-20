@@ -13,6 +13,7 @@ alias cat="ccat"
 
 # git worktree navigation
 alias wtgo=". wtgo"
+alias wtr=". wtr"
 
 # bitbucket
 alias bh="GIT_REMOTE="bitbucket.org" GIT_ROOT="Bitbucket" . ghi"
