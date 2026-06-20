@@ -8,3 +8,6 @@ brew "mp3val"
 brew "media-info"
 brew "exiftool"
 brew "clamav"
+
+# Vector editing — node-level SVG editor; potrace front-end via Trace Bitmap
+cask "inkscape"
