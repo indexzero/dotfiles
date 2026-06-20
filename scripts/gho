@@ -1,27 +1,56 @@
 #!/bin/zsh
 
-if [ -z "$GIT_REMOTE" ]; then
-  GIT_REMOTE="github.com"
+# gho - Open the current repo's remote in a browser.
+# Usage:
+#   gho            - open the 'origin' remote
+#   gho <remote>   - open a named remote (e.g. gho upstream)
+#
+# Reads the URL straight from `git remote`, normalizing ssh/scp URLs
+# (git@host:user/repo, ssh://...) to https. Works from any subdirectory
+# of the repo. Falls back to inferring org/repo from the path under
+# $GIT_ROOT when there is no git remote (honoring $GIT_REMOTE/$GIT_ROOT).
+
+REMOTE_NAME="${1:-origin}"
+
+# host/user/repo -> https url, stripping .git and ssh cruft
+normalize_url() {
+  local url="${1%.git}"
+  case "$url" in
+    git@*:*)
+      # scp-like: git@host:user/repo -> https://host/user/repo
+      local host="${url#git@}"; host="${host%%:*}"
+      echo "https://$host/${url#*:}"
+      ;;
+    ssh://*)
+      # ssh://git@host[:port]/user/repo -> https://host/user/repo
+      local rest="${url#ssh://}"; rest="${rest#*@}"
+      local host="${rest%%/*}"; host="${host%%:*}"
+      echo "https://$host/${rest#*/}"
+      ;;
+    http://*|https://*)
+      echo "https://${url#*://}"
+      ;;
+    *)
+      echo "$url"
+      ;;
+  esac
+}
+
+REMOTE_URL="$(git remote get-url "$REMOTE_NAME" 2>/dev/null)"
+
+if [ -n "$REMOTE_URL" ]; then
+  GIT_URL="$(normalize_url "$REMOTE_URL")"
+else
+  # Fallback: infer org/repo from the path under $GIT_ROOT
+  GIT_REMOTE="${GIT_REMOTE:-github.com}"
+  GIT_ROOT="${GIT_ROOT:-Git}"
+  GIT_DIR="$HOME/$GIT_ROOT"
+  REL_PATH="${PWD#$GIT_DIR/}"
+  IFS='/' read -A PARTS <<< "$REL_PATH"
+  GIT_USER="${PARTS[1]}"
+  GIT_REPO="${PARTS[2]%-worktrees}"
+  GIT_URL="https://$GIT_REMOTE/$GIT_USER/$GIT_REPO"
 fi
-
-if [ -z "$GIT_ROOT" ]; then
-  GIT_ROOT="Git"
-fi
-
-GIT_DIR="$HOME/$GIT_ROOT"
-
-# Get path relative to GIT_DIR
-REL_PATH="${PWD#$GIT_DIR/}"
-
-# Split the relative path into components
-IFS='/' read -A PARTS <<< "$REL_PATH"
-GIT_USER="${PARTS[1]}"
-GIT_REPO="${PARTS[2]}"
-
-# Handle worktree directories: strip -worktrees suffix
-GIT_REPO="${GIT_REPO%-worktrees}"
-
-GIT_URL="https://$GIT_REMOTE/$GIT_USER/$GIT_REPO/"
 
 echo "open \"$GIT_URL\""
 open "$GIT_URL"
