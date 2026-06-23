@@ -13,3 +13,5 @@ brew "clamav"
 cask "inkscape"
 # PNG file optimizer
 brew "optipng"
+# Recompression utilities for .PNG, .MNG, .ZIP, and .GZ files
+brew "advancecomp"
