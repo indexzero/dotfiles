@@ -20,3 +20,5 @@ brew "gum"
 brew "glow"
 brew "starship"
 cask "font-meslo-lg-nerd-font"
+# CLI for Drive, Gmail, Calendar, Sheets, Docs, Chat, Admin, and more
+brew "googleworkspace-cli"
