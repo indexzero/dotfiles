@@ -11,3 +11,5 @@ brew "clamav"
 
 # Vector editing — node-level SVG editor; potrace front-end via Trace Bitmap
 cask "inkscape"
+# PNG file optimizer
+brew "optipng"
