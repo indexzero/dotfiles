@@ -50,8 +50,6 @@
 
   # oneline log with the (author) date
   logd = log --pretty=format:'%C(auto)%h %ad %s' --date=short
-[gtr "hook"]
-  preRemove = gtrbk copy
 [filter "lfs"]
   clean = git-lfs clean -- %f
   smudge = git-lfs smudge -- %f

@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+
+# wtbk - worktree back. Copy untracked scratch/include files from worktrees
+# back into the main repo so they aren't lost when a worktree is removed.
+#
+# Usage: wtbk [list|copy] [worktree-path]
+#   list           Show files that would be copied (default)
+#   copy           Copy files back into the main worktree
+#   worktree-path  Restrict to a single worktree. The worktrunk pre-remove
+#                  hook passes {{ worktree_path }} so only the worktree being
+#                  removed is rescued.
+#
+# Patterns come from .worktreeinclude in the main repo (optional) plus a
+# built-in scratch/** rule; scratch/logs/ is excluded and files already
+# present in the main repo are never clobbered. Worktrees are discovered via
+# `git worktree list`, so this is independent of any path-template layout.
+#
+# Lenient by design: as a blocking pre-remove hook it must never abort a
+# removal, so a non-repo or "nothing to copy" is a silent exit 0.
+
+set -euo pipefail
+
+MODE="${1:-list}"
+ONLY_WT="${2:-}"
+
+case "$MODE" in
+  list|copy) ;;
+  *) echo "Usage: wtbk [list|copy] [worktree-path]" >&2; exit 1 ;;
+esac
+
+git rev-parse --git-dir &>/dev/null || exit 0
+
+# git lists the main worktree first, then each linked worktree. Use that
+# rather than guessing a <repo>-worktrees sibling directory.
+MAIN_WORKTREE=""
+WORKTREES=()
+while IFS= read -r line; do
+  case "$line" in
+    "worktree "*)
+      path="${line#worktree }"
+      if [[ -z "$MAIN_WORKTREE" ]]; then
+        MAIN_WORKTREE="$path"
+      else
+        WORKTREES+=("$path")
+      fi
+      ;;
+  esac
+done < <(git worktree list --porcelain)
+
+REPO_ROOT="$MAIN_WORKTREE"
+[[ -n "$REPO_ROOT" ]] || exit 0
+
+# Normalize the optional filter to a physical path (resolve symlinks) so it
+# compares equal to git's worktree paths regardless of /var vs /private/var
+# style symlinks.
+if [[ -n "$ONLY_WT" ]]; then
+  ONLY_WT="$(cd "$ONLY_WT" 2>/dev/null && pwd -P || printf '%s' "$ONLY_WT")"
+fi
+
+# Patterns: optional .worktreeinclude + the always-on scratch rule.
+PATTERNS=()
+INCLUDE_FILE="$REPO_ROOT/.worktreeinclude"
+if [[ -f "$INCLUDE_FILE" ]]; then
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
+    PATTERNS+=("$line")
+  done < "$INCLUDE_FILE"
+fi
+PATTERNS+=("scratch/**")
+
+EXCLUDES=("scratch/logs/")
+
+shopt -s globstar nullglob
+
+FOUND=0
+COPIED=0
+
+for WT_PATH in "${WORKTREES[@]}"; do
+  [[ -d "$WT_PATH" ]] || continue
+
+  if [[ -n "$ONLY_WT" ]]; then
+    wt_abs="$(cd "$WT_PATH" 2>/dev/null && pwd -P || printf '%s' "$WT_PATH")"
+    [[ "$wt_abs" == "$ONLY_WT" ]] || continue
+  fi
+
+  WT_NAME="$(basename "$WT_PATH")"
+
+  for pattern in "${PATTERNS[@]}"; do
+    for file in "$WT_PATH"/$pattern; do
+      [[ -f "$file" ]] || continue
+
+      REL_PATH="${file#$WT_PATH/}"
+      DEST="$REPO_ROOT/$REL_PATH"
+
+      skip=false
+      for excl in "${EXCLUDES[@]}"; do
+        if [[ "$REL_PATH" == "$excl"* ]]; then skip=true; break; fi
+      done
+      $skip && continue
+
+      [[ -f "$DEST" ]] && continue   # already in main; don't clobber
+
+      ((FOUND++)) || true
+
+      if [[ "$MODE" == "list" ]]; then
+        echo "[$WT_NAME] $REL_PATH"
+      else
+        mkdir -p "$(dirname "$DEST")"
+        cp "$file" "$DEST"
+        echo "[copied] [$WT_NAME] $REL_PATH"
+        ((COPIED++)) || true
+      fi
+    done
+  done
+done
+
+if [[ $FOUND -eq 0 ]]; then
+  echo "wtbk: no files to copy back"
+  exit 0
+fi
+
+if [[ "$MODE" == "copy" ]]; then
+  echo ""
+  echo "wtbk: copied $COPIED file(s) back into $(basename "$REPO_ROOT")"
+fi

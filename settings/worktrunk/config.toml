@@ -4,6 +4,11 @@
 # Place worktrees in a sibling directory named <repo>-worktrees/<branch>
 worktree-path = "{{ repo_path }}/../{{ repo }}-worktrees/{{ branch | sanitize }}"
 
+# Rescue untracked scratch/.worktreeinclude files from a worktree back into
+# the main repo before it's removed (replaces the old git-gtr preRemove hook).
+# Blocking, but wtbk exits 0 on no-op so it never aborts a removal.
+pre-remove = "wtbk copy {{ worktree_path }}"
+
 [commit.generation]
 command = "CLAUDECODE= MAX_THINKING_TOKENS=0 claude -p --no-session-persistence --model=sonnet --tools='' --disable-slash-commands --setting-sources='' --system-prompt=''"
 
