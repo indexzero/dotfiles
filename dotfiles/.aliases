@@ -12,7 +12,6 @@ alias ghcd=". ghi"
 alias cat="ccat"
 
 # git worktree navigation
-alias wtgo=". wtgo"
 alias wtr=". wtr"
 
 # bitbucket
