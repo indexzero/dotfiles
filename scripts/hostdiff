@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # hostdiff - Diff this dotfiles repo against the current machine
-# Usage: hostdiff [files|symlinks|brew|mise|all]
+# Usage: hostdiff [-v|--verbose] [doctor|files|symlinks|brew|mise|all]
+#   default (doctor): problems-only health check — hides ✓/- , shows only fixes
+#   -v / all:         full per-lens listing, including ✓ matches
 set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "$0")/.." && pwd)"
@@ -16,12 +18,21 @@ DOTFILES="$(cd "$(dirname "$0")/.." && pwd)"
 #   $   shell command to run to fix
 #   -/+ removed/added lines in a diff
 
-_ok()      { printf "  \033[2m✓  %s\033[0m\n" "$*"; }
-_diff()    { printf "  \033[33m~  %s\033[0m\n" "$*"; }
-_missing() { printf "  \033[31m✗  %s\033[0m\n" "$*"; }
-_skip()    { printf "  \033[2m-  %s\033[0m\n" "$*"; }
+# In doctor mode (default) only problems print: ✓/- are hidden and section
+# headers appear lazily, the first time a problem lands under them. -v/all
+# restores the full per-lens listing. _ISSUES tallies the doctor summary.
+VERBOSE=0
+_ISSUES=0
+_PENDING=""
+
+_flush()   { [[ -n "$_PENDING" ]] && printf "\n\033[1m── %s\033[0m\n" "$_PENDING"; _PENDING=""; }
+_section() { _PENDING="$*"; [[ $VERBOSE == 1 ]] && _flush; return 0; }
+
+_ok()      { [[ $VERBOSE == 1 ]] || return 0; _flush; printf "  \033[2m✓  %s\033[0m\n" "$*"; }
+_skip()    { [[ $VERBOSE == 1 ]] || return 0; _flush; printf "  \033[2m-  %s\033[0m\n" "$*"; }
+_diff()    { _flush; _ISSUES=$((_ISSUES+1)); printf "  \033[33m~  %s\033[0m\n" "$*"; }
+_missing() { _flush; _ISSUES=$((_ISSUES+1)); printf "  \033[31m✗  %s\033[0m\n" "$*"; }
 _fix()     { printf "     \033[2m\$  %s\033[0m\n" "$*"; }
-_section() { printf "\n\033[1m── %s\033[0m\n" "$*"; }
 
 # ── Normalization ─────────────────────────────────────────────────────────────
 # Lines allowed to differ: tools that append to shell files post-install
@@ -104,7 +115,7 @@ check_symlinks() {
   _check_link "ghostty"   "$DOTFILES/settings/ghostty"              "$HOME/Library/Application Support/com.mitchellh.ghostty"
   _check_link "mise"      "$DOTFILES/settings/mise"                 "$HOME/Library/Application Support/mise"
   _check_link "starship"  "$DOTFILES/settings/starship"             "$HOME/Library/Application Support/starship"
-  _check_link "worktrunk" "$DOTFILES/settings/worktrunk/config.toml" "$HOME/.config/worktrunk/config.toml" "install/worktrunk"
+  _check_link "worktrunk" "$DOTFILES/settings/worktrunk/config.toml" "${XDG_CONFIG_HOME:-$HOME/.config}/worktrunk/config.toml" "install/worktrunk"
 }
 
 # ── Brew lens ─────────────────────────────────────────────────────────────────
@@ -126,10 +137,11 @@ check_brew() {
       _ok "$bfname"
     else
       _diff "$bfname"
+      # Keep only the actionable "→ Formula/Cask X needs ..." lines; everything
+      # else is Homebrew auto-update / tap chatter we don't want in doctor output.
       echo "$out" \
-        | grep -v '^Using\|^Tapping\|^Verifying\|^$\|dependencies are\|Satisfy missing' \
-        | sed 's/^[[:space:]]*/     /' \
-        | sed 's/^     → /     \x1b[31m✗  /' \
+        | grep '→' \
+        | sed 's/^[[:space:]]*→ /     \x1b[31m✗  /' \
         | while IFS= read -r l; do printf "%b\033[0m\n" "$l"; done
       _fix "brew bundle install --file=$brewfile"
       any_diff=1
@@ -165,25 +177,46 @@ check_mise() {
 }
 
 # ── Dispatch ──────────────────────────────────────────────────────────────────
-MODE="${1:-all}"
+_usage() { echo "Usage: hostdiff [-v|--verbose] [doctor|files|symlinks|brew|mise|all]" >&2; }
+
+MODE=""
+for arg in "$@"; do
+  case "$arg" in
+    -v|--verbose)                       VERBOSE=1 ;;
+    -h|--help)                          _usage; exit 0 ;;
+    doctor|files|symlinks|brew|mise|all) MODE="$arg" ;;
+    *)                                  _usage; exit 1 ;;
+  esac
+done
+MODE="${MODE:-doctor}"
+[[ "$MODE" == all ]] && VERBOSE=1   # `all` is the full, verbose listing
+
 EXIT=0
+ALL=0
 
 case "$MODE" in
   files)    check_files    || EXIT=1 ;;
   symlinks) check_symlinks || EXIT=1 ;;
   brew)     check_brew     || EXIT=1 ;;
   mise)     check_mise     || EXIT=1 ;;
-  all)
+  doctor|all)
+    ALL=1
+    [[ $VERBOSE == 1 ]] || printf "\n\033[1m══ hostdiff doctor ══\033[0m\n"
     check_files    || EXIT=1
     check_symlinks || EXIT=1
     check_brew     || EXIT=1
     check_mise     || EXIT=1
     ;;
-  *)
-    echo "Usage: hostdiff [files|symlinks|brew|mise|all]" >&2
-    exit 1
-    ;;
 esac
 
-echo ""
+# Doctor summary (only when sweeping every lens)
+if [[ $ALL == 1 ]]; then
+  if   [[ $_ISSUES -eq 0 ]]; then printf "\n\033[2m✓ No issues — system healthy.\033[0m\n"
+  elif [[ $_ISSUES -eq 1 ]]; then printf "\n\033[33m1 issue found.\033[0m System otherwise healthy.\n"
+  else                            printf "\n\033[33m%d issues found.\033[0m\n" "$_ISSUES"
+  fi
+else
+  echo ""
+fi
+
 exit $EXIT

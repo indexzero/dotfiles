@@ -1,5 +1,12 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
+# Default is 500ms. After a cold boot / wake-from-hibernate the first
+# `node --version` (and friends) is read off disk uncached and can blow
+# past that, printing a spurious "command timed out" warning. 2s covers
+# the cold case without making a genuinely-hung command block the prompt
+# for too long.
+command_timeout = 2000
+
 format = """
 [](color_orange)\
 $os\

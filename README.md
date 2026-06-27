@@ -73,7 +73,7 @@ Utility scripts in [`scripts/`][scripts dir]:
 | Script | Description |
 |:-------|:------------|
 | `git-fetch-all` | Fetch all remotes in bulk |
-| `gtrbk` | Git worktree backup utility |
+| `wtbk` | Copy untracked scratch files from worktrees back to the main repo |
 | `ghi` | GitHub issue helper |
 | `ghr` | GitHub release helper |
 | `gho` | GitHub organization helper |

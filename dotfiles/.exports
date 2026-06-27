@@ -85,6 +85,12 @@ export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/Library/bin:$PATH"
 
 #
+# PEAR FOR THE PEAR GODS (holepunch runtime).
+# Must come after .local/bin so pear/bin/pear wins over .local/bin/pear.
+#
+export PATH="$XDG_DATA_HOME/pear/bin:$PATH"
+
+#
 # Security hardening
 #
 source ~/.security

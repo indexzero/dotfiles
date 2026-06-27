@@ -119,6 +119,16 @@ decide_install_kind() {
     printf 'tap\n'
     return 0
   fi
+  # user/tap/name = a formula or cask from a third-party tap. `brew info`
+  # (unlike `brew install`) refuses to auto-tap, so ensure the tap is present
+  # before probing kind, otherwise the info call fails on an untapped repo.
+  if [[ "$pkg" =~ ^([^/]+/[^/]+)/[^/]+$ ]]; then
+    local tap="${BASH_REMATCH[1]}"
+    if ! brew tap | grep -Fxq -- "$tap"; then
+      printf "brewwr: tapping '%s' for '%s'...\n" "$tap" "$pkg" >&2
+      brew tap "$tap" >&2 || { EXIT=3 die "brew tap '$tap' failed"; }
+    fi
+  fi
   local json fcount ccount
   json="$(brew info --json=v2 "$pkg" || true)"
   [ -n "$json" ] || { EXIT=3 die "brew info '$pkg' failed (unknown package?)"; }

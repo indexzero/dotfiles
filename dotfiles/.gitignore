@@ -1,6 +1,9 @@
 scratch/*
 scratch
 
+sslop/*
+sslop
+
 .claude
 CLAUDE.md
 
