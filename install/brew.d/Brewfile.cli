@@ -22,3 +22,5 @@ brew "starship"
 cask "font-meslo-lg-nerd-font"
 # CLI for Drive, Gmail, Calendar, Sheets, Docs, Chat, Admin, and more
 brew "googleworkspace-cli"
+# Command-line tool for sharing terminal over the web
+brew "ttyd"
