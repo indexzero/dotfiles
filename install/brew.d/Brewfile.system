@@ -9,3 +9,5 @@ cask "betterdisplay"
 cask "eul"
 # Parallel S3 and local filesystem execution tool
 brew "s5cmd"
+# Rsync for cloud storage
+brew "rclone"
