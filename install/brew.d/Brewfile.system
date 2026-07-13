@@ -7,3 +7,5 @@ brew "mole"
 brew "cirruslabs/cli/tart"
 cask "betterdisplay"
 cask "eul"
+# Parallel S3 and local filesystem execution tool
+brew "s5cmd"
