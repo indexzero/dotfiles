@@ -34,6 +34,7 @@ curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zsh | 
 | `./install/setup.sh` | Base system setup |
 | `./install/brew` | [Homebrew] formulae and casks |
 | `./install/git` | [Git] configuration |
+| `./install/gh` | [GitHub CLI] extensions (stacked PRs, etc.) |
 | `./install/npm` | [Node.js] global packages |
 | `./install/go` | [Go] toolchain |
 | `./install/python` | [Python] environment |
