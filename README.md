@@ -41,6 +41,7 @@ curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zsh | 
 | `./install/editors` | Editor installation and config |
 | `./install/hammerspoon` | [Hammerspoon] automation |
 | `./install/atuin` | [Atuin] shell history |
+| `./install/vale` | [Vale] prose linting with [vale-llm-slop] styles |
 
 ### Peripherals
 
@@ -113,6 +114,8 @@ The code is available under the [MIT license][license].
 [Python]: https://www.python.org
 [Hammerspoon]: https://www.hammerspoon.org
 [Atuin]: https://atuin.sh
+[Vale]: https://vale.sh
+[vale-llm-slop]: https://github.com/Syntaf/vale-llm-slop
 
 [zshrc]: dotfiles/.zshrc
 [gitconfig]: dotfiles/.gitconfig
