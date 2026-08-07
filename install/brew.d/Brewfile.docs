@@ -15,3 +15,6 @@ brew "charmbracelet/tap/freeze"
 # PDF tools
 brew "pandoc"
 brew "qpdf"
+
+# Prose linting
+brew "vale"
