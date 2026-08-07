@@ -104,6 +104,12 @@ function nev() { node -pe "$@"; }
 function ffiname() { find . -iname "*$@*" -type f | sort}
 
 #
+# rgname (name)
+# Finds a file by name (respects nothing: includes gitignored + hidden)
+#
+function rgname() { rg --files --no-ignore --hidden --iglob "*$@*" | sort }
+
+#
 # git-origin-all-branches
 #
 function git-origin-all-branches() {
