@@ -1,3 +1,4 @@
 # AI / LLM tooling
 npm @builder.io/micro-agent
 npm githuman
+pnpm calldiff
