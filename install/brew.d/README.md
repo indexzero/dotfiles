@@ -13,6 +13,7 @@ Organized Homebrew packages by concern for selective installation.
 - `Brewfile.media` - Media processing (imagemagick, ffmpeg)
 - `Brewfile.system` - System utilities (fastfetch, eul, pearcleaner)
 - `Brewfile.network` - Network & security tools (mitmproxy)
+- `Brewfile.devops` - Cloud & DevOps CLIs (fastly)
 - `Brewfile.productivity` - Productivity apps (espanso, nb, cointop)
 - `Brewfile.terminals` - Terminal emulators (warp, ghostty)
 

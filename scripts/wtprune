@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+
+# wtprune - Prune worktrees that have been integrated into main.
+#
+# `wt list` grays out (dims) any worktree whose branch is already an ancestor
+# of the default branch, marking it with a "⊂" glyph in the Status column.
+# Those are done: merged in, nothing left to lose. wtprune finds them and
+# removes them via `wt remove` (which deletes the branch too, since it's
+# merged).
+#
+# Usage: wtprune [-y|--yes] [-n|--dry-run]
+#   -y, --yes       Remove every candidate without prompting
+#   -n, --dry-run   List what would be removed, then exit
+#   (default)       Prompt per worktree: [y]es / [n]o / [a]ll / [q]uit
+#
+# The primary checkout (is_main) and the worktree you're currently in
+# (is_current) are never touched — you can't yank the ground from under the
+# running shell. Requires worktrunk (`wt`) and `jq`.
+
+set -euo pipefail
+
+YES=false
+DRY_RUN=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -y|--yes)     YES=true; shift ;;
+    -n|--dry-run) DRY_RUN=true; shift ;;
+    -h|--help)    sed -n '3,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "wtprune: unknown option: $1" >&2; exit 1 ;;
+  esac
+done
+
+command -v wt >/dev/null 2>&1 || { echo "wtprune: worktrunk (wt) not found" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo "wtprune: jq not found" >&2; exit 1; }
+
+git rev-parse --git-dir &>/dev/null || { echo "wtprune: not a git repository" >&2; exit 1; }
+
+# Candidates: integrated (⊂), not the primary checkout, not the current one.
+# Emit "branch<TAB>path" so we keep the path for display.
+mapfile -t CANDIDATES < <(
+  wt list --format json 2>/dev/null | jq -r '
+    .[]
+    | select(.is_main == false)
+    | select(.is_current == false)
+    | select(.symbols | contains("⊂"))
+    | [.branch, .path] | @tsv
+  '
+)
+
+if [[ ${#CANDIDATES[@]} -eq 0 ]]; then
+  echo "wtprune: no integrated worktrees to prune"
+  exit 0
+fi
+
+# Show wt's own table, filtered to just the candidate rows (plus its header),
+# so formatting/colors/glyphs/dimming match `wt list` exactly rather than us
+# re-implementing its renderer from the JSON.
+print_table() {
+  local table entry branch
+  table="$(wt list 2>/dev/null)" || return 0
+  printf '%s\n' "$table" | awk '/Branch/ && /Status/ { print; exit }'
+  for entry in "${CANDIDATES[@]}"; do
+    branch="${entry%%$'\t'*}"
+    printf '%s\n' "$table" | awk -v b="$branch" '/^[@+] / && index($0, b) { print }'
+  done
+}
+
+echo "Integrated worktrees (⊂), safe to prune:"
+echo ""
+print_table
+echo ""
+
+if $DRY_RUN; then
+  echo "wtprune: dry run, nothing removed (${#CANDIDATES[@]} candidate(s))"
+  exit 0
+fi
+
+REMOVED=0
+FAILED=0
+
+for entry in "${CANDIDATES[@]}"; do
+  branch="${entry%%$'\t'*}"
+
+  if ! $YES; then
+    printf 'Remove %s? [y/N/a/q] ' "$branch"
+    read -r reply </dev/tty || reply="q"
+    case "$reply" in
+      a|A) YES=true ;;
+      y|Y) ;;
+      q|Q) echo "wtprune: stopped"; break ;;
+      *)   continue ;;
+    esac
+  fi
+
+  if wt remove --foreground "$branch"; then
+    ((REMOVED++)) || true
+  else
+    echo "wtprune: failed to remove $branch (dirty? use 'wt remove -f $branch')" >&2
+    ((FAILED++)) || true
+  fi
+done
+
+echo ""
+echo "wtprune: removed $REMOVED worktree(s)$( [[ $FAILED -gt 0 ]] && echo ", $FAILED failed" )"

@@ -1,0 +1,24 @@
+#!/bin/zsh
+
+# GitHub CLI extensions. `gh` itself is a Brewfile.vcs formula; its extensions
+# install via `gh extension`, not brew, so they live here. Idempotent — safe to
+# re-run: installs what's missing, upgrades the rest.
+
+set -x;
+
+extensions=(
+  github/gh-stack             # native stacked pull requests
+  github/gh-actions-importer  # CI migration (TravisCI etc.)
+)
+
+for repo in "${extensions[@]}"; do
+  if gh extension list 2>/dev/null | grep -qF "$repo"; then
+    echo "gh extension already installed: $repo"
+  else
+    gh extension install "$repo"
+  fi
+done
+
+gh extension upgrade --all || true
+
+set +x;

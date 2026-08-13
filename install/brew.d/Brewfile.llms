@@ -5,3 +5,5 @@
 # rtk: installed from source at ~/Git/indexzero/rtk (cargo install --path .)
 brew "rtk-ai/tap/icm"
 cask "codex"
+# Jq-like command-line tool for markdown processing
+brew "mq"

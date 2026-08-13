@@ -23,6 +23,7 @@ npm  json
 - `globals.dev`  — development & release tooling
 - `globals.llms` — AI / LLM tooling
 - `globals.docs` — documentation & diagrams
+- `globals.devops` — cloud & devops tooling
 
 ## Usage
 

@@ -20,6 +20,7 @@ GO_TOOLS=(
   "github.com/mabd-dev/reposcan@latest"
   "github.com/rafi/gits@latest"
   "github.com/chainguard-dev/yam@latest"
+  "github.com/indexzero/skiffs@latest"
 )
 
 # -----------------------------------------------------------------------------
@@ -216,6 +217,11 @@ echo ""
 echo "  reposcan -r ~/Git              # Scan repos for uncommitted/unpushed changes"
 echo "  reposcan -r ~/Git --filter dirty"
 echo "  reposcan -r ~/Git --output json"
+echo ""
+echo "  skiffs -r ~/Git                # Scan repos for uncommitted/unpushed changes"
+echo "  skiffs -r ~/Git --filter dirty"
+echo "  skiffs -r ~/Git --output json"
+echo "  skiffs prune                   # Find local branches safe to delete"
 echo ""
 echo "  gits status ~/Git              # Show status of all repos"
 echo "  gits list                      # List configured projects"

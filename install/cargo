@@ -1,0 +1,85 @@
+#!/bin/zsh
+
+# cargo — install global Rust crates from install/cargo.d/crates.<set>.
+#
+# Each non-comment line is "<crate> [install flags]", passed to cargo install.
+# Mirrors install/npm + npm.d. Crates already in `cargo install --list` are
+# skipped so re-runs are cheap.
+
+set -e
+
+SCRIPT_DIR="${0:A:h}"
+CARGO_D="$SCRIPT_DIR/cargo.d"
+
+# Parse options
+SET=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --set|-s)
+            SET="$2"
+            shift 2
+            ;;
+        --help|-h)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  --set, -s <name>  Install only crates.<name> (cli, ...)"
+            echo "  --help, -h        Show this help message"
+            echo ""
+            echo "Without options, installs every set in $CARGO_D."
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+if ! command -v cargo &> /dev/null; then
+    echo "Error: cargo not found on PATH" >&2
+    echo "Rust is managed by mise here — run install/mise (or: mise use -g rust@latest)" >&2
+    exit 1
+fi
+
+# Names of crates already installed globally, one per line.
+INSTALLED="$(cargo install --list | awk '/^[a-zA-Z0-9_-]+ v/ { print $1 }')"
+
+is_installed() {
+    print -r -- "$INSTALLED" | grep -Fxq -- "$1"
+}
+
+install_crate() {
+    local crate="$1"
+    shift
+    if is_installed "$crate"; then
+        echo "  cargo -> $crate (already installed, skipping)"
+        return 0
+    fi
+    echo "  cargo -> $crate ${*:+$*}"
+    cargo install "$crate" "$@"
+}
+
+install_file() {
+    local file="$1"
+    [[ -f "$file" ]] || { echo "Error: no such set file: $file" >&2; exit 1; }
+    echo "Installing from ${file##*/}..."
+    # Read crate + flags, skipping blank lines and comments. The `|| [ -n ... ]`
+    # keeps a final line without a trailing newline from being dropped.
+    local crate rest
+    while read -r crate rest || [[ -n "$crate" ]]; do
+        [[ -z "$crate" || "$crate" == \#* ]] && continue
+        install_crate "$crate" ${=rest}
+    done < "$file"
+}
+
+if [[ -n "$SET" ]]; then
+    install_file "$CARGO_D/crates.$SET"
+else
+    for f in "$CARGO_D"/crates.*; do
+        [[ -e "$f" ]] || continue
+        install_file "$f"
+    done
+fi
+
+echo "Installation complete!"
