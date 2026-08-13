@@ -7,3 +7,5 @@ brew "rtk-ai/tap/icm"
 cask "codex"
 # Jq-like command-line tool for markdown processing
 brew "mq"
+# Persistent memory for your coding agents
+brew "vshulcz/tap/deja-vu"
