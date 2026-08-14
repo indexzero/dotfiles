@@ -21,6 +21,7 @@ GO_TOOLS=(
   "github.com/rafi/gits@latest"
   "github.com/chainguard-dev/yam@latest"
   "github.com/indexzero/skiffs@latest"
+  "github.com/danielmiessler/fabric/cmd/fabric@latest"
 )
 
 # -----------------------------------------------------------------------------
@@ -227,3 +228,7 @@ echo "  gits status ~/Git              # Show status of all repos"
 echo "  gits list                      # List configured projects"
 echo ""
 echo "  yam <file.yaml>                # YAML formatter"
+echo ""
+echo "  fabric --setup                 # Configure providers/API keys (~/.config/fabric)"
+echo "  fabric -U                      # Update the patterns library"
+echo "  pbpaste | fabric -p summarize  # Run a pattern over stdin"
