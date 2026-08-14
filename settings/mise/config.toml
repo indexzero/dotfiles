@@ -6,7 +6,10 @@ jobs = 4
 [tools]
 node = "lts"
 python = "latest"
-go = "latest"
+# Pinned to a minor: this is only the bootstrap Go. Per-project versions come
+# from `toolchain` lines in go.mod via GOTOOLCHAIN=auto, not from mise.
+# Patch releases still flow (security fixes); minor bumps are deliberate.
+go = "1.26"
 bun = "latest"
 deno = "latest"
 rust = "latest"
