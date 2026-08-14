@@ -18,3 +18,5 @@ brew "qpdf"
 
 # Prose linting
 brew "vale"
+# Plain text note-taking assistant
+brew "zk"
