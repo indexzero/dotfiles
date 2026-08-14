@@ -15,13 +15,18 @@ set -e
 # Configuration
 # -----------------------------------------------------------------------------
 
+# Most tools float on @latest: they are read-only developer CLIs where the
+# churn of hand-bumping pins outweighs the risk. Tools that hold credentials
+# are pinned to an explicit tag and bumped deliberately.
 GO_TOOLS=(
   "github.com/charmbracelet/glow/v2@latest"
   "github.com/mabd-dev/reposcan@latest"
   "github.com/rafi/gits@latest"
   "github.com/chainguard-dev/yam@latest"
   "github.com/indexzero/skiffs@latest"
-  "github.com/danielmiessler/fabric/cmd/fabric@latest"
+  # Pinned: reads API keys from ~/.config/fabric/.env, and upstream
+  # auto-releases on nearly every merge (~1 tag/day).
+  "github.com/danielmiessler/fabric/cmd/fabric@v1.4.470"
 )
 
 # -----------------------------------------------------------------------------
