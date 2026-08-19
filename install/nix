@@ -1,0 +1,21 @@
+#!/usr/bin/env zsh
+set -e
+
+DOTFILES="$(cd "${0:A:h}/.." && pwd)"
+WORKSTATION="$DOTFILES/workstation"
+
+if ! command -v nix >/dev/null 2>&1; then
+  echo "nix is not installed. Bootstrap first:"
+  echo "  curl -fsSL https://install.determinate.systems/nix | sh -s -- install"
+  echo "then see $WORKSTATION/README.md"
+  exit 1
+fi
+
+if command -v home-manager >/dev/null 2>&1; then
+  home-manager switch --flake "$WORKSTATION#cjr"
+else
+  # First run: bootstrap home-manager from its flake
+  nix run github:nix-community/home-manager -- switch --flake "$WORKSTATION#cjr"
+fi
+
+echo "Switched. Rollback: home-manager generations"
