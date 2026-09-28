@@ -124,6 +124,41 @@ detect_kind_in_file() {
   done
 }
 
+# Resolve formula-vs-cask for a fully-qualified user/tap/name from the tap's
+# own index. Prefer this over `brew info` for qualified names: `brew tap-info`
+# reads names without loading the tap's Ruby, so it works on an untrusted tap,
+# and a name that simply is not there gives a precise error instead of brew
+# globbing the tap, loading an unrelated formula, and failing the trust check
+# on that -- which reads as a trust problem when it is really a typo.
+kind_from_tap_index() {
+  local pkg="$1" tap="$2" json is_formula is_cask
+  json="$(brew tap-info --json "$tap" 2>/dev/null || true)"
+  [ -n "$json" ] || { EXIT=3 die "brew tap-info '$tap' failed"; }
+
+  is_formula="$(printf '%s' "$json" \
+    | jq --arg p "$pkg" '[.[0].formula_names[]? | select(. == $p)] | length')"
+  is_cask="$(printf '%s' "$json" \
+    | jq --arg p "$pkg" '[.[0].cask_tokens[]?  | select(. == $p)] | length')"
+
+  if [ "$is_formula" -gt 0 ] && [ "$is_cask" -gt 0 ]; then
+    if is_tty; then
+      gum choose --header "'$pkg' is both a formula and a cask in $tap. Which?" \
+        formula cask
+    else
+      EXIT=2 die "'$pkg' is ambiguous (formula and cask exist); pass --formula or --cask"
+    fi
+    return 0
+  fi
+  [ "$is_formula" -eq 0 ] || { printf 'formula\n'; return 0; }
+  [ "$is_cask"    -eq 0 ] || { printf 'cask\n';    return 0; }
+
+  local provides
+  provides="$(printf '%s' "$json" \
+    | jq -r '.[0] | ((.formula_names // []) + (.cask_tokens // []))[]' \
+    | sed 's/^/  /')"
+  EXIT=3 die "'$pkg' is not in tap '$tap'."$'\n'"$tap provides:"$'\n'"${provides:-  (nothing)}"
+}
+
 # Decide kind for an install: explicit flag wins, else heuristic + brew info.
 decide_install_kind() {
   local pkg="$1" forced="${2:-}"
@@ -145,6 +180,8 @@ decide_install_kind() {
       printf "brewwr: tapping '%s' for '%s'...\n" "$tap" "$pkg" >&2
       brew tap "$tap" >&2 || { EXIT=3 die "brew tap '$tap' failed"; }
     fi
+    kind_from_tap_index "$pkg" "$tap"
+    return 0
   fi
   local json fcount ccount
   json="$(brew info --json=v2 "$pkg" || true)"
