@@ -78,16 +78,33 @@ set_description() {
   printf '%s\n' "${line#\# }"
 }
 
-# Lists set names that contain <pkg>, one per line. Empty output = not found.
-find_sets_for_pkg() {
-  local pkg="$1" name file
+# `brew bundle list` is ruby-heavy and we scan every set, so build a set/entry
+# index once per run and answer lookups from it. One "<set>\t<entry>" record
+# per line.
+BREW_INDEX=''
+BREW_INDEX_BUILT=0
+
+build_brew_index() {
+  [ "$BREW_INDEX_BUILT" -eq 0 ] || return 0
+  local name file entry
   while IFS= read -r name; do
     file="$(brewfile_for_set "$name")"
-    if brew bundle list --all --file="$file" \
-        | grep -Fxq -- "$pkg"; then
-      printf '%s\n' "$name"
-    fi
+    while IFS= read -r entry; do
+      [ -n "$entry" ] || continue
+      BREW_INDEX="${BREW_INDEX}${name}"$'\t'"${entry}"$'\n'
+    done < <(brew bundle list --all --file="$file")
   done < <(list_set_names)
+  BREW_INDEX_BUILT=1
+}
+
+invalidate_brew_index() { BREW_INDEX=''; BREW_INDEX_BUILT=0; }
+
+# Lists set names that contain <pkg>, one per line. Empty output = not found.
+find_sets_for_pkg() {
+  local pkg="$1"
+  build_brew_index
+  printf '%s' "$BREW_INDEX" \
+    | awk -F'\t' -v pkg="$pkg" '$2 == pkg { print $1 }'
 }
 
 # Determine which kind (--formula | --cask | --tap) a pkg currently has in a
@@ -195,6 +212,42 @@ commit_brewfile() {
   printf 'brewwr: committed %s %s %s Brewfile.%s\n' "$action" "$pkg" "$prep" "$set_name"
 }
 
+# A `user/repo/name` package also needs a `tap "user/repo"` line, or a fresh
+# machine running `brew bundle install` can't resolve it. Note that `brew
+# bundle add --tap` only writes the entry: unlike --formula/--cask it does not
+# tap the host (Homebrew's bundle/adder.rb skips ensure_installed! for taps),
+# so tap explicitly here.
+#
+# Unlike a formula, a tap already declared in *another* set is not a conflict —
+# it only needs to appear once across the whole bundle.
+ensure_tap_entry() {
+  local tap="$1" set_name="$2" no_commit="$3" no_install="$4"
+  local found file
+  found="$(find_sets_for_pkg "$tap" | head -1)"
+  if [ -n "$found" ]; then
+    printf "brewwr: tap '%s' already in Brewfile.%s\n" "$tap" "$found" >&2
+    return 0
+  fi
+
+  if [ "$no_install" -eq 0 ] && ! brew tap | grep -Fxq -- "$tap"; then
+    printf "brewwr: tapping '%s' for '%s'...\n" "$tap" "$set_name" >&2
+    brew tap "$tap" >&2 || { EXIT=3 die "brew tap '$tap' failed"; }
+  fi
+
+  file="$(brewfile_for_set "$set_name")"
+  ensure_trailing_newline "$file"
+  brew bundle add --tap --no-describe --file="$file" "$tap" \
+    || { EXIT=3 die "brew bundle add --tap '$tap' failed"; }
+  invalidate_brew_index
+
+  # Commit now rather than batching with <pkg>: the tap is genuinely installed
+  # and its entry stands on its own, so a later failure installing <pkg> must
+  # not strand it uncommitted.
+  if [ "$no_commit" -eq 0 ]; then
+    commit_brewfile add "$tap" "$set_name"
+  fi
+}
+
 # ---------- subcommand: install ----------
 
 usage_install() {
@@ -210,19 +263,26 @@ Flags:
       --upgrade      After installing <pkg> and writing the Brewfile, run
                      `brew bundle install` against the file to upgrade anything
                      else that is outdated. (Default: install only <pkg>.)
+      --no-tap-entry For a `user/repo/name` <pkg>, skip writing the companion
+                     `tap "user/repo"` entry. (Default: write it.)
       --no-commit    Leave the diff in the working tree.
   -h, --help
+
+A fully-qualified `user/repo/name` <pkg> writes two entries: the tap and the
+formula/cask. Each is committed separately.
 EOF
 }
 
 cmd_install() {
   local pkg='' set_name='' forced_kind='' no_install=0 upgrade=0 no_commit=0
+  local no_tap_entry=0
   while [ $# -gt 0 ]; do
     case "$1" in
       -s|--set)         set_name="$2"; shift 2 ;;
       --cask)           forced_kind='cask'; shift ;;
       --formula|--formulae) forced_kind='formula'; shift ;;
       --tap)            forced_kind='tap'; shift ;;
+      --no-tap-entry)   no_tap_entry=1; shift ;;
       --no-install)     no_install=1; shift ;;
       --upgrade)        upgrade=1; shift ;;
       --no-upgrade)     upgrade=0; shift ;;
@@ -243,6 +303,17 @@ cmd_install() {
   fi
   local file; file="$(brewfile_for_set "$set_name")"
   [ -f "$file" ] || { EXIT=2 die "no such set: $set_name (try 'brewwr sets')"; }
+
+  assert_brew_d_clean
+
+  # A `user/repo/name` <pkg> implies a tap dependency. Record it up front, so
+  # that the "already in Brewfile" early-exits below can't leave a package
+  # entry whose tap was never written. Skipped when --tap forces the whole
+  # string to be read as a tap in its own right.
+  if [ "$no_tap_entry" -eq 0 ] && [ "$forced_kind" != 'tap' ] \
+      && [[ "$pkg" =~ ^([^/]+/[^/]+)/[^/]+$ ]]; then
+    ensure_tap_entry "${BASH_REMATCH[1]}" "$set_name" "$no_commit" "$no_install"
+  fi
 
   # Cross-set conflict / idempotency.
   # `brew bundle list` is ruby-heavy and runs once per set, so this scan can
@@ -288,15 +359,13 @@ cmd_install() {
   kind="$(decide_install_kind "$pkg" "$forced_kind")"
   kind_flag="$(kind_to_flag "$kind")"
 
-  assert_brew_d_clean
-
   # Guard: `brew bundle add` appends without inserting a leading newline if
   # the target file does not already end with one. Ensure trailing newline.
   ensure_trailing_newline "$file"
 
   if [ "$no_install" -eq 1 ]; then
     # Write only; never touch the host.
-    brew bundle add "$kind_flag" --file="$file" "$pkg" \
+    brew bundle add "$kind_flag" --no-describe --file="$file" "$pkg" \
       || { EXIT=3 die 'brew bundle add failed'; }
   else
     # Install <pkg> first so a failure leaves the Brewfile untouched. Note:
@@ -306,8 +375,8 @@ cmd_install() {
       tap)     brew tap "$pkg" ;;
       cask)    brew install --cask "$pkg" ;;
       formula) brew install "$pkg" ;;
-    esac || { EXIT=3 die "brew install '$pkg' failed; Brewfile unchanged"; }
-    brew bundle add "$kind_flag" --file="$file" "$pkg" \
+    esac || { EXIT=3 die "brew install '$pkg' failed; Brewfile entry for '$pkg' unchanged"; }
+    brew bundle add "$kind_flag" --no-describe --file="$file" "$pkg" \
       || { EXIT=3 die 'brew bundle add failed'; }
     if [ "$upgrade" -eq 1 ]; then
       printf "brewwr: --upgrade: running 'brew bundle install --file=%s' (may upgrade other outdated entries)...\n" "$file" >&2
@@ -316,7 +385,11 @@ cmd_install() {
     fi
   fi
 
-  [ "$no_commit" -eq 0 ] && commit_brewfile add "$pkg" "$set_name"
+  # Note: `[ ... ] && commit_brewfile` here would make the function return 1
+  # under --no-commit, which set -e turns into a failing exit for the whole run.
+  if [ "$no_commit" -eq 0 ]; then
+    commit_brewfile add "$pkg" "$set_name"
+  fi
 }
 
 # ---------- subcommand: uninstall ----------
@@ -389,7 +462,9 @@ cmd_uninstall() {
       || printf "brewwr: 'brew uninstall %s' reported an issue (continuing)\n" "$pkg" >&2
   fi
 
-  [ "$no_commit" -eq 0 ] && commit_brewfile remove "$pkg" "$set_name"
+  if [ "$no_commit" -eq 0 ]; then
+    commit_brewfile remove "$pkg" "$set_name"
+  fi
 }
 
 # ---------- subcommand: sets ----------
@@ -439,10 +514,14 @@ brewwr — keep install/brew.d/Brewfile.<set> in sync with the host.
 
 Usage:
   brewwr install <pkg> [-s|--set <name>] [--cask|--formula|--tap]
-                       [--no-install] [--no-commit]
+                       [--no-install] [--no-tap-entry] [--no-commit]
   brewwr uninstall <pkg> [--keep-installed] [--no-commit]
   brewwr sets
   brewwr sets <name>
+
+A fully-qualified <pkg> handles its own tap:
+  brewwr install drolosoft/tap/crex -s cli
+writes both `tap "drolosoft/tap"` and `brew "drolosoft/tap/crex"`.
 EOF
 }
 
