@@ -16,3 +16,4 @@ tap "manaflow-ai/cmux"
 # Ghostty-based terminal with vertical tabs and notifications for AI coding agents
 cask "cmux"
 tap "drolosoft/tap"
+brew "drolosoft/tap/cmux-resurrect"
