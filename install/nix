@@ -11,11 +11,25 @@ if ! command -v nix >/dev/null 2>&1; then
   exit 1
 fi
 
-if command -v home-manager >/dev/null 2>&1; then
-  home-manager switch --flake "$WORKSTATION#cjr"
+# devenv reads devenv.nix from the working directory
+cd "$WORKSTATION"
+
+# Machines needs devenv >= 2.4 (`devenv version` prints "devenv 2.4.0 ...")
+devenv_has_machines() {
+  command -v devenv >/dev/null 2>&1 || return 1
+  local v="$(devenv version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+' | head -1)"
+  [[ -n "$v" ]] || return 1
+  local major="${v%%.*}" minor="${v#*.}"
+  (( major > 2 || (major == 2 && minor >= 4) ))
+}
+
+if devenv_has_machines; then
+  devenv machines deploy cjr "$@"
 else
-  # First run: bootstrap home-manager from its flake
-  nix run github:nix-community/home-manager -- switch --flake "$WORKSTATION#cjr"
+  # First run: one-shot devenv from nixpkgs-unstable (2.4.0+). Never
+  # `nix profile install` it: home-manager also manages the user profile
+  # and the two collide. After this deploy, home.packages provides devenv.
+  nix run github:NixOS/nixpkgs/nixpkgs-unstable#devenv -- machines deploy cjr "$@"
 fi
 
-echo "Switched. Rollback: home-manager generations"
+echo "Deployed. Rollback: home-manager generations (Machines has no automatic rollback for home-manager)"

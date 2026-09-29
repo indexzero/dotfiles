@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://devenv.sh/devenv.schema.json
+inputs:
+  nixpkgs:
+    url: github:NixOS/nixpkgs/nixpkgs-unstable
+  home-manager:
+    url: github:nix-community/home-manager
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+  # try-me-maybe: Rust port of tobi/try (ships a home-manager module).
+  # Requires indexzero/try.rs#5 (nix flake) merged to main.
+  try:
+    url: github:indexzero/try.rs
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
