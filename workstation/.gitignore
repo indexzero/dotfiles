@@ -1,0 +1,11 @@
+# Devenv (what `devenv init` generates; devenv.lock stays committed)
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# nix build
+result
+result-*
