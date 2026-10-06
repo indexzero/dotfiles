@@ -160,6 +160,12 @@ kind_from_tap_index() {
 }
 
 # Decide kind for an install: explicit flag wins, else heuristic + brew info.
+#
+# Prints the kind, and for an unqualified name that resolves to a third-party
+# tap, a TAB and that tap name. A caller that only wants the kind can read up
+# to the TAB; a non-empty second field means the Brewfile also needs a tap
+# entry. The field is empty when the name is already qualified (the caller
+# handles that case earlier) and when --formula/--cask/--tap skips the probe.
 decide_install_kind() {
   local pkg="$1" forced="${2:-}"
   if [ -n "$forced" ]; then
@@ -183,25 +189,38 @@ decide_install_kind() {
     kind_from_tap_index "$pkg" "$tap"
     return 0
   fi
-  local json fcount ccount
+  local json fcount ccount kind owner=''
   json="$(brew info --json=v2 "$pkg" || true)"
   [ -n "$json" ] || { EXIT=3 die "brew info '$pkg' failed (unknown package?)"; }
   fcount="$(printf '%s' "$json" | jq '.formulae | length')"
   ccount="$(printf '%s' "$json" | jq '.casks    | length')"
   if [ "$fcount" -gt 0 ] && [ "$ccount" -gt 0 ]; then
     if is_tty; then
-      gum choose --header "'$pkg' resolves to both a formula and a cask. Which?" \
-        formula cask
+      kind="$(gum choose --header "'$pkg' resolves to both a formula and a cask. Which?" \
+        formula cask)"
+      [ -n "$kind" ] || { EXIT=2 die 'no kind selected'; }
     else
       EXIT=2 die "'$pkg' is ambiguous (formula and cask exist); pass --formula or --cask"
     fi
   elif [ "$ccount" -gt 0 ]; then
-    printf 'cask\n'
+    kind='cask'
   elif [ "$fcount" -gt 0 ]; then
-    printf 'formula\n'
+    kind='formula'
   else
     EXIT=3 die "brew info '$pkg' returned no formula or cask"
   fi
+
+  # A name with no tap prefix can still come from a third-party tap, and then
+  # the Brewfile needs a tap entry just as a qualified name does. brew reports
+  # the tap it resolved from, so read it rather than guessing from the name.
+  case "$kind" in
+    formula) owner="$(printf '%s' "$json" | jq -r '.formulae[0].tap // ""')" ;;
+    cask)    owner="$(printf '%s' "$json" | jq -r '.casks[0].tap    // ""')" ;;
+  esac
+  case "$owner" in
+    homebrew/core|homebrew/cask) owner='' ;;
+  esac
+  printf '%s\t%s\n' "$kind" "$owner"
 }
 
 kind_to_flag() {
@@ -392,9 +411,19 @@ cmd_install() {
     EXIT=5 die "'$pkg' already in Brewfile.${other_sets[0]}; run 'brewwr uninstall --keep-installed $pkg' first, or target that set"
   fi
 
-  local kind kind_flag
-  kind="$(decide_install_kind "$pkg" "$forced_kind")"
+  local kind kind_flag probe owner=''
+  probe="$(decide_install_kind "$pkg" "$forced_kind")"
+  kind="${probe%%$'\t'*}"
+  case "$probe" in *$'\t'*) owner="${probe#*$'\t'}" ;; esac
   kind_flag="$(kind_to_flag "$kind")"
+
+  # <pkg> carried no tap prefix but came from a third-party tap, so it needs a
+  # tap entry too. Unlike the qualified case this runs after the "already in
+  # Brewfile" exits above, so it cannot backfill a tap for an entry that is
+  # already present; remove and re-add the package to fix one of those.
+  if [ -n "$owner" ] && [ "$no_tap_entry" -eq 0 ]; then
+    ensure_tap_entry "$owner" "$set_name" "$no_commit" "$no_install"
+  fi
 
   # Guard: `brew bundle add` appends without inserting a leading newline if
   # the target file does not already end with one. Ensure trailing newline.
