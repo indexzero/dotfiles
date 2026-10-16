@@ -31,7 +31,8 @@ curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zsh | 
 
 | Script | Description |
 |:-------|:------------|
-| `./install/setup.sh` | Base system setup |
+| `./install/setup.sh` | Base system setup, runs `./install/dotfiles install` |
+| `./install/dotfiles` | Clone `main` and symlink dotfiles into `~` |
 | `./install/brew` | [Homebrew] formulae and casks |
 | `./install/git` | [Git] configuration |
 | `./install/gh` | [GitHub CLI] extensions (stacked PRs, etc.) |
@@ -42,6 +43,29 @@ curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zsh | 
 | `./install/hammerspoon` | [Hammerspoon] automation |
 | `./install/atuin` | [Atuin] shell history |
 | `./install/vale` | [Vale] prose linting with [vale-llm-slop] styles |
+
+### Updating
+
+`$HOME` links into a dedicated clone at `~/.local/share/dotfiles`, never
+into a dev checkout. Edits made in a dev checkout reach the machine only
+after they merge to `main`:
+
+```zsh
+dotfiles pull     # fast-forward the clone to origin/main, then relink
+dotfiles status   # branch, local edits, and link health
+```
+
+The clone refuses commits and has no push URL. Anything that writes
+through a symlink still edits the clone, for example an installer that
+appends to `~/.zshrc`. Carry those edits back with `hostdiff`:
+
+```zsh
+hostdiff clone            # list local edits in the clone
+hostdiff ingest           # print them, plus any copies shadowing a link, as a patch
+hostdiff ingest --apply   # apply that patch to $DOTFILES_HOME for review
+```
+
+Once the change merges to `main`, `dotfiles pull` returns the clone to clean.
 
 ### Peripherals
 
@@ -55,7 +79,7 @@ Structure
 
 ### Configuration
 
-Core dotfiles that get symlinked into `~`:
+Core dotfiles that `./install/dotfiles` symlinks into `~` from the installed clone:
 
 | File | Description |
 |:-----|:------------|
