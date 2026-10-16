@@ -1,0 +1,5 @@
+#!/usr/bin/env zsh
+# dotfiles - entry point for install/dotfiles in whichever repo this lives in.
+# On PATH via ~/.scripts, which links into the installed clone, so
+# `dotfiles pull` always runs the installed copy of the installer.
+exec zsh "${0:A:h}/../install/dotfiles" "$@"
