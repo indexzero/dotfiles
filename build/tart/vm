@@ -1,0 +1,80 @@
+#!/usr/bin/env zsh
+#
+# vm - the tart commands build/tart/README.md repeats, with the names fixed.
+#
+# Usage:
+#   vm tags [image]           list vanilla image tags (default: macos-tahoe-vanilla)
+#   vm pristine <image>       pull <image> as "pristine" and grow its disk
+#   vm new <name>             clone pristine -> <name>
+#   vm run <name>             boot <name> with the dotfiles checkout shared read-only
+#   vm ssh <name> [cmd...]    ssh admin@<name> (password: admin)
+#   vm reset <name>           delete <name> and clone it again from pristine
+#   vm rm <name>              delete <name>
+#
+# Env: TART_PRISTINE (pristine), TART_CPU (6), TART_MEMORY (16384),
+#      TART_DISK (120), DOTFILES_HOME (~/Git/indexzero/dotfiles)
+
+set -euo pipefail
+
+PRISTINE="${TART_PRISTINE:-pristine}"
+CPU="${TART_CPU:-6}"
+MEMORY="${TART_MEMORY:-16384}"
+DISK="${TART_DISK:-120}"
+DOTFILES_HOME="${DOTFILES_HOME:-$HOME/Git/indexzero/dotfiles}"
+
+die() { print -u2 -r -- "vm: $*"; exit 1; }
+need() { [[ -n "${1:-}" ]] || die "missing VM name"; }
+
+cmd_tags() {
+  local image="${1:-macos-tahoe-vanilla}" tok
+  tok="$(curl -fsSL "https://ghcr.io/token?scope=repository:cirruslabs/$image:pull" \
+    | python3 -I -c 'import sys,json;print(json.load(sys.stdin)["token"])')"
+  curl -fsSL -H "Authorization: Bearer $tok" "https://ghcr.io/v2/cirruslabs/$image/tags/list" \
+    | python3 -I -c 'import sys,json;print("\n".join(sorted(json.load(sys.stdin)["tags"])))'
+}
+
+cmd_pristine() {
+  local image="${1:-}"
+  [[ -n "$image" ]] || die "usage: vm pristine <image>  (see: vm tags)"
+  tart list --quiet 2>/dev/null | grep -qx "$PRISTINE" && die "$PRISTINE exists; 'tart delete $PRISTINE' first"
+  tart clone "$image" "$PRISTINE"
+  # Grow before the first boot: the guest expands its container on boot.
+  tart set "$PRISTINE" --cpu "$CPU" --memory "$MEMORY" --disk-size "$DISK"
+  tart get "$PRISTINE"
+}
+
+cmd_new() {
+  need "${1:-}"
+  tart clone "$PRISTINE" "$1"
+}
+
+cmd_run() {
+  need "${1:-}"
+  # The window stays open on purpose: cask and CLT dialogs land there.
+  tart run "$1" --dir="dotfiles:$DOTFILES_HOME:ro"
+}
+
+cmd_ssh() {
+  need "${1:-}"
+  local name="$1"; shift
+  local ip
+  ip="$(tart ip "$name")" || die "no IP yet for $name; is it running?"
+  # Every clone gets a new MAC and IP; don't let known_hosts pile up.
+  ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "admin@$ip" "$@"
+}
+
+cmd_reset() {
+  need "${1:-}"
+  tart delete "$1" 2>/dev/null || true
+  tart clone "$PRISTINE" "$1"
+}
+
+cmd_rm() {
+  need "${1:-}"
+  tart delete "$1"
+}
+
+case "${1:-}" in
+  tags|pristine|new|run|ssh|reset|rm) c="$1"; shift; "cmd_$c" "$@" ;;
+  *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac
