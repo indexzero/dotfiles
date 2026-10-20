@@ -6,3 +6,4 @@ npm @zeeg/dex
 # yarn is itself a package manager; install on demand, then:
 #   yarn config set --home enableTelemetry 0
 # npm yarn
+pnpm @cs-au-dk/jelly
