@@ -1,8 +1,14 @@
 #!/usr/bin/env zsh
 set -e
 
-DOTFILES="$(cd "${0:A:h}/.." && pwd)"
+# Deploy from the installed clone, never from this checkout (see install/dotfiles).
+# home-manager reads home.nix from here, so an edit reaches the machine only
+# after it merges to main and `dotfiles pull` runs. Set DOTFILES_DIR to a
+# checkout to deploy from it anyway.
+DOTFILES="${DOTFILES_DIR:-$HOME/.local/share/dotfiles}"
+[ -d "$DOTFILES/.git" ] || { echo "No installed clone at $DOTFILES; run install/dotfiles install first" >&2; exit 1; }
 WORKSTATION="$DOTFILES/workstation"
+[ -d "$WORKSTATION" ] || { echo "No workstation/ in $DOTFILES; merge it to main and run: dotfiles pull" >&2; exit 1; }
 
 if ! command -v nix >/dev/null 2>&1; then
   echo "nix is not installed. Bootstrap first:"
