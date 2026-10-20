@@ -11,27 +11,39 @@ in `home.nix`.
 
 ## Bootstrap (once)
 
+`install/nix` deploys from the installed clone (`~/.local/share/dotfiles`,
+see `install/dotfiles`), never from a dev checkout. home-manager reads
+`home.nix` from the clone, so a change reaches the machine the same way every
+other dotfile does: merge to `main`, then `dotfiles pull`. Building is the
+exception. It activates nothing, so it runs from the checkout.
+
 ```sh
 # 1. Install nix
 curl -fsSL https://install.determinate.systems/nix | sh -s -- install
 
-# 2. Build without activating (also generates devenv.lock)
+# 2. Build without activating, from the dev checkout (also generates devenv.lock)
 cd ~/Git/indexzero/dotfiles/workstation
 nix run github:NixOS/nixpkgs/nixpkgs-unstable#devenv -- build machines.cjr
 
-# 3. Activate (bootstraps devenv with a one-shot `nix run` if needed)
-../install/nix
-
-# 4. Pin the inputs
+# 3. Pin the inputs
 git add devenv.lock && git commit -m "chore(workstation): pin devenv inputs"
+
+# 4. Merge to main, then bring the clone up to date
+dotfiles pull
+
+# 5. Activate (bootstraps devenv with a one-shot `nix run` if needed)
+install/nix
 ```
 
 After the first deploy, `devenv` itself comes from the home profile.
 
+To activate from a checkout before it merges, point the installer at it:
+`DOTFILES_DIR=~/Git/indexzero/dotfiles install/nix`.
+
 ## Every time after
 
 ```sh
-install/nix        # or, from workstation/: devenv machines deploy cjr
+install/nix        # or, from the clone's workstation/: devenv machines deploy cjr
 ```
 
 `install/nix --yes` skips deploy's confirmation prompt.
