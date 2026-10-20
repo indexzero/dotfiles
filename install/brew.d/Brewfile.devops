@@ -1,3 +1,5 @@
 # Cloud & DevOps
+tap "fastly/tap"
 # A CLI for interacting with the Fastly platform
 brew "fastly/tap/fastly"
+brew "gmailctl"

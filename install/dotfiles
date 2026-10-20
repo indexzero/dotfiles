@@ -1,0 +1,214 @@
+#!/usr/bin/env zsh
+#
+# dotfiles - install this repo by symlinking from a dedicated, read-only clone.
+#
+# The clone lives at $DOTFILES_DIR (default ~/.local/share/dotfiles) and tracks
+# main only. Day-to-day edits happen in the dev checkout ($DOTFILES_HOME); they
+# reach this machine by merging to main and running `dotfiles pull`. A mistake
+# in the dev checkout therefore never leaks system-wide.
+#
+# Usage: dotfiles [-n|--dry-run] <install|clone|link|pull|status>
+#   install  clone (if needed) + link
+#   clone    clone main into $DOTFILES_DIR and install guard hooks
+#   link     symlink dotfiles/*, scripts and fns into $HOME
+#   pull     fast-forward main (autostash local edits), then relink
+#   status   branch, dirty files and link health of the clone
+#
+set -euo pipefail
+
+# Pinned to ~/.local/share on purpose: .exports points XDG_DATA_HOME at
+# ~/Library/Application Support, and a path with a space is a poor link target.
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/.local/share/dotfiles}"
+DOTFILES_HOME="${DOTFILES_HOME:-$HOME/Git/indexzero/dotfiles}"
+DOTFILES_REMOTE="${DOTFILES_REMOTE:-https://github.com/indexzero/dotfiles.git}"
+DOTFILES_BRANCH="${DOTFILES_BRANCH:-main}"
+BACKUP_DIR="$HOME/.backup/dotfiles-$(date +%Y%m%d-%H%M%S)"
+DRY_RUN="${DRY_RUN:-}"
+
+say()  { print -r -- "$*"; }
+warn() { print -u2 -P "%F{yellow}dotfiles:%f $*"; }
+die()  { print -u2 -P "%F{red}dotfiles:%f $*"; exit 1; }
+run()  { if [[ -n $DRY_RUN ]]; then say "(dry-run) $*"; else "$@"; fi; }
+
+need_clone() {
+  [[ -d "$DOTFILES_DIR/.git" ]] || die "no clone at $DOTFILES_DIR (run: dotfiles clone)"
+}
+
+# ── guard ─────────────────────────────────────────────────────────────────────
+# Light protection for the clone: commits are refused and pushes go nowhere.
+# Set DOTFILES_ALLOW_COMMIT=1 to override for a one-off.
+install_guards() {
+  local hook="$DOTFILES_DIR/.git/hooks/pre-commit"
+  [[ -n $DRY_RUN ]] && { say "(dry-run) install guard hooks"; return; }
+  cat > "$hook" <<HOOK
+#!/bin/sh
+[ -n "\$DOTFILES_ALLOW_COMMIT" ] && exit 0
+echo "dotfiles: $DOTFILES_DIR is the installed, read-only clone." >&2
+echo "dotfiles: make the change in $DOTFILES_HOME, merge to $DOTFILES_BRANCH, then 'dotfiles pull'." >&2
+echo "dotfiles: to carry local edits over, run 'hostdiff ingest'." >&2
+exit 1
+HOOK
+  chmod +x "$hook"
+  git -C "$DOTFILES_DIR" remote set-url --push origin no_push
+}
+
+cmd_clone() {
+  if [[ -d "$DOTFILES_DIR/.git" ]]; then
+    say "Clone exists at $DOTFILES_DIR"
+  else
+    say "Cloning $DOTFILES_REMOTE ($DOTFILES_BRANCH) into $DOTFILES_DIR"
+    run mkdir -p "${DOTFILES_DIR:h}"
+    run git clone --branch "$DOTFILES_BRANCH" --single-branch "$DOTFILES_REMOTE" "$DOTFILES_DIR"
+  fi
+  install_guards
+}
+
+# ── link ──────────────────────────────────────────────────────────────────────
+# link_one SRC DST: make DST a symlink to SRC, backing up whatever was there.
+link_one() {
+  local src="$1" dst="$2"
+  if [[ -L "$dst" ]]; then
+    [[ "$(readlink "$dst")" == "$src" ]] && return 0
+    say "Relinking $dst"
+    run rm "$dst"
+  elif [[ -e "$dst" ]]; then
+    local rel="${dst#$HOME/}"
+    say "Backing up $dst to $BACKUP_DIR/$rel"
+    BACKED_UP=1
+    run mkdir -p "${BACKUP_DIR}/${rel:h}"
+    run mv "$dst" "$BACKUP_DIR/$rel"
+  fi
+  run mkdir -p "${dst:h}"
+  say "Linking $dst -> $src"
+  run ln -s "$src" "$dst"
+}
+
+# Every link this installer owns, as "src<TAB>dst" lines.
+#   - top-level entries in dotfiles/ link whole
+#   - dotfiles/.config is shared with other apps, so its files link one by one
+#   - scripts/ and fns/ link as directories
+links() {
+  local root="$DOTFILES_DIR" f
+  for f in "$root"/dotfiles/.*(N) "$root"/dotfiles/*(N); do
+    [[ "${f:t}" == .config ]] && continue
+    printf '%s\t%s\n' "$f" "$HOME/${f:t}"
+  done
+  if [[ -d "$root/dotfiles/.config" ]]; then
+    for f in "$root"/dotfiles/.config/**/*(.ND); do
+      printf '%s\t%s\n' "$f" "$HOME/.config/${f#$root/dotfiles/.config/}"
+    done
+  fi
+  printf '%s\t%s\n' "$root/scripts" "$HOME/.scripts"
+  printf '%s\t%s\n' "$root/fns"     "$HOME/.fns"
+}
+
+cmd_link() {
+  need_clone
+  local src dst
+  links | while IFS=$'\t' read -r src dst; do link_one "$src" "$dst"; done
+  [[ -n ${BACKED_UP:-} ]] && say "Backups in $BACKUP_DIR"
+  return 0
+}
+
+# ── pull ──────────────────────────────────────────────────────────────────────
+cmd_pull() {
+  need_clone
+  if [[ -n "$(git -C "$DOTFILES_DIR" status --porcelain)" ]]; then
+    warn "local edits in the clone are stashed and re-applied around the pull:"
+    git -C "$DOTFILES_DIR" status --short >&2
+    warn "carry them to $DOTFILES_HOME with 'hostdiff ingest'"
+  fi
+  # Tracked edits ride a stash. Untracked files move aside instead: a
+  # fast-forward that adds the same path (the usual result of an ingest)
+  # would otherwise refuse to run, or the stash pop would refuse to restore.
+  local stashed="" aside="" f
+  local -a untracked
+  if [[ -z $DRY_RUN ]]; then
+    untracked=("${(@0)$(git -C "$DOTFILES_DIR" ls-files --others --exclude-standard -z)}")
+    untracked=(${untracked:#})
+    if (( ${#untracked} )); then
+      aside="$(mktemp -d -t dotfiles-pull)"
+      for f in $untracked; do
+        mkdir -p "$aside/${f:h}" && mv "$DOTFILES_DIR/$f" "$aside/$f"
+      done
+    fi
+    if ! git -C "$DOTFILES_DIR" diff --quiet HEAD; then
+      git -C "$DOTFILES_DIR" stash push -q -m "dotfiles pull $(date +%F)"
+      stashed=1
+    fi
+  fi
+
+  run git -C "$DOTFILES_DIR" pull -q --ff-only origin "$DOTFILES_BRANCH"
+
+  if [[ -n $stashed ]] && ! git -C "$DOTFILES_DIR" stash pop -q 2>/dev/null; then
+    git -C "$DOTFILES_DIR" checkout -q -- . 2>/dev/null || true
+    warn "local edits did not re-apply cleanly; they are kept in the clone's stash"
+    warn "inspect: git -C \"$DOTFILES_DIR\" stash show -p"
+    warn "if already ingested: git -C \"$DOTFILES_DIR\" stash drop"
+  fi
+  for f in $untracked; do
+    if [[ ! -e "$DOTFILES_DIR/$f" ]]; then
+      mv "$aside/$f" "$DOTFILES_DIR/$f"
+    elif cmp -s "$aside/$f" "$DOTFILES_DIR/$f"; then
+      rm -f "$aside/$f"
+    else
+      warn "upstream now has a different $f; your copy is at $aside/$f"
+    fi
+  done
+  [[ -n $aside ]] && find "$aside" -depth -type d -empty -delete
+  cmd_link
+}
+
+# ── status ────────────────────────────────────────────────────────────────────
+cmd_status() {
+  need_clone
+  local rc=0 branch ahead src dst
+  branch="$(git -C "$DOTFILES_DIR" symbolic-ref --short -q HEAD || echo '(detached)')"
+  say "clone   $DOTFILES_DIR"
+  say "branch  $branch @ $(git -C "$DOTFILES_DIR" rev-parse --short HEAD)"
+  [[ "$branch" == "$DOTFILES_BRANCH" ]] || { warn "clone is not on $DOTFILES_BRANCH"; rc=1; }
+  ahead="$(git -C "$DOTFILES_DIR" rev-list --count "origin/$DOTFILES_BRANCH..HEAD" 2>/dev/null || echo 0)"
+  (( ahead == 0 )) || { warn "clone has $ahead local commit(s) not on origin/$DOTFILES_BRANCH"; rc=1; }
+  if [[ -n "$(git -C "$DOTFILES_DIR" status --porcelain)" ]]; then
+    warn "clone has local edits (hostdiff ingest):"
+    git -C "$DOTFILES_DIR" status --short >&2
+    rc=1
+  fi
+  if [[ -n "$(git -C "$DOTFILES_DIR" stash list)" ]]; then
+    warn "clone has stashed edits from an earlier pull:"
+    git -C "$DOTFILES_DIR" stash list >&2
+    rc=1
+  fi
+  while IFS=$'\t' read -r src dst; do
+    if [[ ! -L "$dst" ]]; then
+      if [[ -e "$dst" ]]; then warn "not a symlink: $dst"; else warn "missing: $dst"; fi
+      rc=1
+    elif [[ "$(readlink "$dst")" != "$src" ]]; then
+      warn "wrong target: $dst -> $(readlink "$dst")"
+      rc=1
+    fi
+  done < <(links)
+  (( rc == 0 )) && say "ok"
+  return $rc
+}
+
+# ── dispatch ──────────────────────────────────────────────────────────────────
+usage() { sed -n '/^# Usage:/,/^#$/p' "${0:A}" | sed 's/^# \{0,1\}//' >&2; }
+
+CMD=""
+for arg in "$@"; do
+  case "$arg" in
+    -n|--dry-run) DRY_RUN=1 ;;
+    -h|--help)    usage; exit 0 ;;
+    install|clone|link|pull|status) CMD="$arg" ;;
+    *) usage; exit 1 ;;
+  esac
+done
+
+case "${CMD:-status}" in
+  install) cmd_clone; cmd_link ;;
+  clone)   cmd_clone ;;
+  link)    cmd_link ;;
+  pull)    cmd_pull ;;
+  status)  cmd_status ;;
+esac

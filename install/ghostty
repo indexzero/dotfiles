@@ -5,7 +5,9 @@
 
 set -e
 
-DOTFILES="$(cd "${0:A:h}/.." && pwd)"
+# Link from the installed clone, never from this checkout (see install/dotfiles)
+DOTFILES="${DOTFILES_DIR:-$HOME/.local/share/dotfiles}"
+[ -d "$DOTFILES/.git" ] || { echo "No installed clone at $DOTFILES; run install/dotfiles install first" >&2; exit 1; }
 SRC="$DOTFILES/settings/ghostty"
 DST="$HOME/Library/Application Support/com.mitchellh.ghostty"
 BACK="$HOME/.backup/com.mitchellh.ghostty"

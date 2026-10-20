@@ -1,11 +1,22 @@
 #!/usr/bin/env bash
 # hostdiff - Diff this dotfiles repo against the current machine
-# Usage: hostdiff [-v|--verbose] [doctor|files|symlinks|brew|mise|all]
+# Usage: hostdiff [-v|--verbose] [doctor|clone|files|symlinks|brew|mise|all]
+#        hostdiff ingest [--apply]
 #   default (doctor): problems-only health check — hides ✓/- , shows only fixes
 #   -v / all:         full per-lens listing, including ✓ matches
+#   ingest:           print local edits ($HOME and the installed clone) as a
+#                     patch against the repo; --apply applies it to the dev
+#                     checkout ($DOTFILES_HOME) for review and commit
 set -euo pipefail
 
 DOTFILES="$(cd "$(dirname "$0")/.." && pwd)"
+
+# The installed, read-only clone that $HOME links into (see install/dotfiles)
+# and the dev checkout where changes are authored. Once the clone exists, every
+# lens compares $HOME against it rather than against wherever this script runs.
+CLONE="${DOTFILES_DIR:-$HOME/.local/share/dotfiles}"
+DEV="${DOTFILES_HOME:-$HOME/Git/indexzero/dotfiles}"
+[[ -d "$CLONE/.git" ]] && DOTFILES="$CLONE"
 
 # ── Visual language ───────────────────────────────────────────────────────────
 # ✓  green  — matches
@@ -63,10 +74,25 @@ check_files() {
     file="$(basename "$src")"
     dst="$HOME/$file"
 
-    if [[ ! -e "$dst" ]]; then
+    if [[ ! -e "$dst" && ! -L "$dst" ]]; then
       _missing "$file"
-      _fix "zsh install/setup.sh"
+      _fix "zsh install/dotfiles link"
       any_diff=1
+      continue
+    fi
+
+    # Linked into the clone: identical by construction. Local edits made
+    # through the link show up in the clone lens instead.
+    if [[ -L "$dst" ]]; then
+      if [[ "$(readlink "$dst")" == "$src" ]]; then
+        _ok "$file"
+      else
+        _diff "$file  (links elsewhere)"
+        printf "     \033[2mis:   $(readlink "$dst")\033[0m\n"
+        printf "     \033[2mwant: $src\033[0m\n"
+        _fix "zsh install/dotfiles link"
+        any_diff=1
+      fi
       continue
     fi
 
@@ -82,12 +108,116 @@ check_files() {
         | grep '^[<>]' | head -12 \
         | sed 's|^< |     \x1b[31m- |; s|^> |     \x1b[32m+ |' \
         | while IFS= read -r l; do printf "%b\033[0m\n" "$l"; done
-      _fix "zsh install/setup.sh"
+      _fix "hostdiff ingest --apply   # keep the + lines"
+      _fix "zsh install/dotfiles link # then replace the copy with a link"
       any_diff=1
     fi
   done
 
   return $any_diff
+}
+
+# ── Clone lens ────────────────────────────────────────────────────────────────
+# The clone should sit on main, match origin, and have no local edits. Edits
+# arrive when something writes through a symlink (installers appending to
+# ~/.zshrc, `git config --global`, an over-eager agent).
+check_clone() {
+  _section "clone"
+
+  if [[ ! -d "$CLONE/.git" ]]; then
+    _missing "no installed clone at $CLONE"
+    _fix "zsh install/dotfiles install"
+    return 1
+  fi
+
+  local rc=0 branch ahead dirty
+  branch="$(git -C "$CLONE" symbolic-ref --short -q HEAD || echo '(detached)')"
+  if [[ "$branch" == main ]]; then
+    _ok "on main @ $(git -C "$CLONE" rev-parse --short HEAD)"
+  else
+    _diff "on $branch, not main"
+    _fix "git -C \"$CLONE\" switch main"
+    rc=1
+  fi
+
+  ahead="$(git -C "$CLONE" rev-list --count origin/main..HEAD 2>/dev/null || echo 0)"
+  if [[ "$ahead" != 0 ]]; then
+    _diff "$ahead local commit(s) not on origin/main"
+    _fix "git -C \"$CLONE\" log origin/main..HEAD"
+    rc=1
+  fi
+
+  dirty="$(git -C "$CLONE" status --porcelain)"
+  if [[ -z "$dirty" ]]; then
+    _ok "no local edits"
+  else
+    while IFS= read -r line; do _diff "edited: ${line:3}"; done <<< "$dirty"
+    _fix "hostdiff ingest            # review the patch"
+    _fix "hostdiff ingest --apply    # copy it into $DEV"
+    rc=1
+  fi
+
+  if [[ -n "$(git -C "$CLONE" stash list)" ]]; then
+    _diff "stashed edits left by an earlier 'dotfiles pull'"
+    _fix "git -C \"$CLONE\" stash show -p --include-untracked"
+    rc=1
+  fi
+
+  return $rc
+}
+
+# ── Ingest ────────────────────────────────────────────────────────────────────
+# Emit one patch, relative to the repo root, covering:
+#   1. tracked and untracked edits inside the installed clone
+#   2. real files in $HOME that shadow a dotfiles/ entry (pre-symlink copies,
+#      or links some tool replaced with a file via write-and-rename)
+# Lines in $HOME but not the repo show as +; lines only in the repo show as -.
+_ingest_patch() {
+  if [[ -d "$CLONE/.git" && "$DOTFILES" == "$CLONE" ]]; then
+    git -C "$CLONE" --no-pager diff --no-color HEAD
+    git -C "$CLONE" ls-files --others --exclude-standard -z \
+      | while IFS= read -r -d '' rel; do
+          diff -u --label /dev/null --label "b/$rel" /dev/null "$CLONE/$rel" || true
+        done
+  fi
+
+  local src rel dst
+  while IFS= read -r -d '' src; do
+    rel="${src#"$DOTFILES"/}"
+    dst="$HOME/${rel#dotfiles/}"
+    [[ -f "$dst" && ! -L "$dst" ]] || continue
+    diff -u --label "a/$rel" --label "b/$rel" "$src" "$dst" || true
+  done < <(find "$DOTFILES/dotfiles" -type f -print0)
+}
+
+cmd_ingest() {
+  local apply="${1:-}" patch
+  patch="$(mktemp -t hostdiff-ingest)"
+  _ingest_patch > "$patch"
+
+  if [[ ! -s "$patch" ]]; then
+    echo "Nothing to ingest: \$HOME and $DOTFILES match the repo."
+    rm -f "$patch"
+    return 0
+  fi
+
+  if [[ "$apply" != --apply ]]; then
+    cat "$patch"
+    rm -f "$patch"
+    return 0
+  fi
+
+  [[ -d "$DEV/.git" ]] || { echo "hostdiff: no dev checkout at $DEV (set DOTFILES_HOME)" >&2; return 1; }
+  # Plain apply leaves the result unstaged for review; --3way (which stages)
+  # is the fallback when the dev checkout has moved on.
+  if git -C "$DEV" apply "$patch" 2>/dev/null || git -C "$DEV" apply --3way "$patch"; then
+    rm -f "$patch"
+    echo "Applied to $DEV. Review with: git -C \"$DEV\" diff"
+    echo "Once merged to main, 'dotfiles pull' brings the clone back to clean."
+  else
+    echo "hostdiff: patch did not apply cleanly; kept at $patch" >&2
+    return 1
+  fi
 }
 
 # ── Symlink lens ──────────────────────────────────────────────────────────────
@@ -177,14 +307,23 @@ check_mise() {
 }
 
 # ── Dispatch ──────────────────────────────────────────────────────────────────
-_usage() { echo "Usage: hostdiff [-v|--verbose] [doctor|files|symlinks|brew|mise|all]" >&2; }
+_usage() {
+  echo "Usage: hostdiff [-v|--verbose] [doctor|clone|files|symlinks|brew|mise|all]" >&2
+  echo "       hostdiff ingest [--apply]" >&2
+}
+
+if [[ "${1:-}" == ingest ]]; then
+  shift
+  cmd_ingest "$@"
+  exit $?
+fi
 
 MODE=""
 for arg in "$@"; do
   case "$arg" in
     -v|--verbose)                       VERBOSE=1 ;;
     -h|--help)                          _usage; exit 0 ;;
-    doctor|files|symlinks|brew|mise|all) MODE="$arg" ;;
+    doctor|clone|files|symlinks|brew|mise|all) MODE="$arg" ;;
     *)                                  _usage; exit 1 ;;
   esac
 done
@@ -195,6 +334,7 @@ EXIT=0
 ALL=0
 
 case "$MODE" in
+  clone)    check_clone    || EXIT=1 ;;
   files)    check_files    || EXIT=1 ;;
   symlinks) check_symlinks || EXIT=1 ;;
   brew)     check_brew     || EXIT=1 ;;
@@ -202,6 +342,7 @@ case "$MODE" in
   doctor|all)
     ALL=1
     [[ $VERBOSE == 1 ]] || printf "\n\033[1m══ hostdiff doctor ══\033[0m\n"
+    check_clone    || EXIT=1
     check_files    || EXIT=1
     check_symlinks || EXIT=1
     check_brew     || EXIT=1

@@ -7,7 +7,9 @@
 
 set -e
 
-DOTFILES="$(cd "${0:A:h}/.." && pwd)"
+# Link from the installed clone, never from this checkout (see install/dotfiles)
+DOTFILES="${DOTFILES_DIR:-$HOME/.local/share/dotfiles}"
+[ -d "$DOTFILES/.git" ] || { echo "No installed clone at $DOTFILES; run install/dotfiles install first" >&2; exit 1; }
 SRC="$DOTFILES/settings/vale"
 DST="$HOME/Library/Application Support/vale"
 BACK="$HOME/.backup/vale"

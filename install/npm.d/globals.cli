@@ -2,3 +2,4 @@
 npm json
 npm fx
 npm http-server
+pnpm @termdraw/app

@@ -115,6 +115,10 @@ source ${ZIM_HOME}/init.zsh
 # Post-init module configuration
 # ------------------------------
 
+# zim's environment module sets NO_CLOBBER; let >> still create new files
+# (cmux per-terminal history appends to a file that may not exist yet).
+setopt APPEND_CREATE
+
 #
 # zsh-history-substring-search
 #
