@@ -1,7 +1,7 @@
 Seemed like the thing to do
 
 * [🔧 Setup](#setup)
-  * [📦 Prerequisites](#prerequisites)
+  * [🥾 Bootstrap](#bootstrap)
   * [🚀 Install](#install)
   * [🎹 Peripherals](#peripherals)
 * [📂 Structure](#structure)
@@ -13,24 +13,42 @@ Seemed like the thing to do
 Setup
 -----
 
-To set up the dotfiles, run the following in order:
-
-### Prerequisites
-
-Install [Zim], a modular Zsh framework:
-
-```zsh
-curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zsh | zsh
-```
-
-### Install
-
 > [!CAUTION]
 > __DO NOT__ run the setup scripts if you do not fully understand
 > what they do. Seriously, __DON'T__!
 
+### Bootstrap
+
+On a fresh Apple Silicon Mac, one line:
+
+```zsh
+curl -fsSL https://raw.githubusercontent.com/indexzero/dotfiles/main/install/bootstrap.zsh | zsh
+```
+
+It installs the Command Line Tools and Homebrew, clones this repo to
+`~/Git/indexzero/dotfiles`, runs `./install/dotfiles install`, then every
+installer in the table below in order, and finishes with Nix and the
+`workstation/` devenv machine. Every step is idempotent, so re-running is
+how you resume. `BOOTSTRAP_SKIP="brew nix"` skips steps;
+`BOOTSTRAP_ONLY=nix` runs one. `editors` and `hammerspoon` are skipped
+unless asked for.
+
+To try a branch before it merges, in a VM:
+
+```zsh
+curl -fsSL https://raw.githubusercontent.com/indexzero/dotfiles/<branch>/install/bootstrap.zsh | DOTFILES_REF=<branch> zsh
+```
+
+[Zim] needs no separate install: `.zshrc` downloads `zimfw.zsh` and builds
+its modules the first time it runs.
+
+### Install
+
+The pieces, for running one at a time:
+
 | Script | Description |
 |:-------|:------------|
+| `./install/bootstrap.zsh` | Everything below, from a blank machine |
 | `./install/setup.sh` | Base system setup, runs `./install/dotfiles install` |
 | `./install/dotfiles` | Clone `main` and symlink dotfiles into `~` |
 | `./install/nix` | [Nix] seed via [devenv] machines, see `workstation/` |

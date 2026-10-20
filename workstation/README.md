@@ -11,6 +11,9 @@ in `home.nix`.
 
 ## Bootstrap (once)
 
+On a blank machine `install/bootstrap.zsh` does all of this after the base
+setup. The steps below are the same thing by hand.
+
 `install/nix` deploys from the installed clone (`~/.local/share/dotfiles`,
 see `install/dotfiles`), never from a dev checkout. home-manager reads
 `home.nix` from the clone, so a change reaches the machine the same way every
