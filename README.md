@@ -33,6 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zsh | 
 |:-------|:------------|
 | `./install/setup.sh` | Base system setup, runs `./install/dotfiles install` |
 | `./install/dotfiles` | Clone `main` and symlink dotfiles into `~` |
+| `./install/nix` | [Nix] seed via [devenv] machines, see `workstation/` |
 | `./install/brew` | [Homebrew] formulae and casks |
 | `./install/git` | [Git] configuration |
 | `./install/gh` | [GitHub CLI] extensions (stacked PRs, etc.) |
@@ -140,6 +141,8 @@ The code is available under the [MIT license][license].
 [Atuin]: https://atuin.sh
 [Vale]: https://vale.sh
 [vale-llm-slop]: https://github.com/Syntaf/vale-llm-slop
+[Nix]: https://nixos.org/
+[devenv]: https://devenv.sh/machines/
 
 [zshrc]: dotfiles/.zshrc
 [gitconfig]: dotfiles/.gitconfig
