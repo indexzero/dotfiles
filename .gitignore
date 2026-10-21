@@ -13,3 +13,6 @@ audio-scan*/*
 # Dropped into the checkout when a tart VM mounts it as a shared volume (build/tart)
 .fseventsd/
 .Trashes/
+
+# Bootstrap run logs copied out of a VM for review
+bootstrap*.log

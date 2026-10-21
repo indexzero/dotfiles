@@ -55,7 +55,7 @@ install/nix        # or, from the clone's workstation/: devenv machines deploy c
 
 | Category | Owner |
 |---|---|
-| CLI tools (`brew.d/Brewfile.cli`) | **home.nix** (exa→eza; ccat/nono/googleworkspace-cli/fonts stay brew) |
+| CLI tools (`brew.d/Brewfile.cli`) | **home.nix** (exa→eza, xsv→xan; ccat/nono/googleworkspace-cli stay brew; the font is Brewfile.terminal) |
 | try (`tryme` + shell function) | **home.nix** (`programs.try`, via the try.rs flake) |
 | starship / atuin binaries | **home.nix** (configs still `settings/`, next slice) |
 | wrapper (`flake.nix`) | **devenv.nix** + **devenv.yaml** (one local Machine; devenv itself added inline) |

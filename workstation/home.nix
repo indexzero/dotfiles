@@ -35,7 +35,7 @@
     coreutils
     duf
     dust
-    xsv
+    xan        # xsv: archived upstream, gone from nixpkgs and Homebrew
     jq
     yq-go
     jnv
