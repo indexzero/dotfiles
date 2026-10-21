@@ -8,13 +8,13 @@
 #   vm new <name>             clone pristine -> <name>
 #   vm run <name>             boot <name> with the dotfiles checkout shared read-only
 #   vm ssh <name> [cmd...]    ssh $TART_USER@<name> (default admin, password: admin)
-#   vm grow <name>            grow the guest's APFS container to fill the disk.
-#                             `tart set --disk-size` grows the image only; the
-#                             guest keeps its 50 GB volume until this runs.
+#   vm grow <name>            boot <name> into Recovery to grow its APFS container
+#                             to the full disk. Do this once, on pristine; every
+#                             clone then starts with the big volume. Prints the
+#                             three diskutil commands to run in Recovery's Terminal.
 #   vm adduser <name> [user]  create an admin account in the guest (default cjr,
 #                             password: admin). home.nix hardcodes cjr, so the
 #                             nix step needs this; then TART_USER=cjr vm ssh ...
-#   vm prep <name> [user]     grow + adduser, in one ssh session as admin
 #   vm reset <name>           delete <name> and clone it again from pristine
 #   vm rm <name>              delete <name>
 #
@@ -78,26 +78,29 @@ cmd_ssh() {
   ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${USER_}@${ip}" "$@"
 }
 
-# tart set --disk-size grows the raw image, and macOS does not grow the APFS
-# container to match on boot. Without this the guest fills its original 50 GB
-# volume while the host shows a 120 GB image. The physical store is the last
-# field of the "Apple_APFS Container" line; 0 means "as large as possible".
+# tart set --disk-size grows the raw image only. Inside the guest the layout
+# is: 0.5 GB iSCPreboot, the ~44 GB system container, a 5 GB recovery
+# container, then all the new space. APFS cannot grow a container across the
+# recovery partition, and the system container cannot be touched while it is
+# booted (resizeContainer returns -69519). tart's documented fix is to do it
+# from Recovery, once. Run on pristine; clones inherit the result.
 cmd_grow() {
   need "${1:-}"
-  local saved="$USER_"
-  USER_=admin
-  cmd_ssh "$1" \
-    "store=\$(diskutil list | awk '/Apple_APFS Container/ {print \$NF}' | head -1); \
-     echo \"container store: \$store\"; \
-     sudo diskutil apfs resizeContainer \"\$store\" 0 || echo 'resize refused (already at maximum?)'; \
-     df -h / | tail -1"
-  USER_="$saved"
-}
+  cat <<'STEPS'
+Booting into Recovery. In the window: Utilities > Terminal, then:
 
-cmd_prep() {
-  need "${1:-}"
-  cmd_grow "$1"
-  cmd_adduser "$1" "${2:-cjr}"
+  diskutil list physical
+      # note the identifiers: the Apple_APFS "Container" partition (usually
+      # disk0s2) and the Apple_APFS_Recovery partition after it (disk0s3)
+  diskutil eraseVolume free free disk0s3
+  yes | diskutil repairDisk disk0
+  diskutil apfs resizeContainer disk0s2 0
+  diskutil list physical
+      # the container now spans the disk; then Apple menu > Shut Down
+
+Back here: `vm new <clone>` from this VM and `df -h /` inside shows ~120 GB.
+STEPS
+  tart run "$1" --recovery
 }
 
 # The vanilla image has one account, admin/admin. home.nix pins
@@ -127,6 +130,6 @@ cmd_rm() {
 }
 
 case "${1:-}" in
-  tags|pristine|new|run|ssh|grow|adduser|prep|reset|rm) c="$1"; shift; "cmd_$c" "$@" ;;
+  tags|pristine|new|run|ssh|grow|adduser|reset|rm) c="$1"; shift; "cmd_$c" "$@" ;;
   *) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

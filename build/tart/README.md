@@ -30,12 +30,27 @@ build/tart/vm pristine ghcr.io/cirruslabs/macos-tahoe-vanilla:26.6.2
 That pulls the image (about 30 GB, cached in `~/.tart/cache`), names the VM
 `pristine`, and grows its disk image to 120 GB. All the Brewfile sets plus a
 Nix store do not fit the default disk. tart can only grow a disk, never
-shrink it. Growing the image is half the job: macOS does not grow the APFS
-container inside the guest to match, so every running VM needs `vm grow`
-once, which `vm prep` does below.
+shrink it.
 
-Never run `pristine` itself. tart has no snapshots. The pattern is a copy per
-run, and a local `tart clone` is an APFS clone that takes seconds.
+Growing the image is half the job. Inside the guest the system container is
+still 44 GB, because the recovery partition sits right after it and APFS
+cannot grow a container across another partition. The booted system cannot
+fix its own container either. tart's documented fix runs from Recovery:
+
+```zsh
+build/tart/vm grow pristine     # prints the steps, then boots pristine into Recovery
+```
+
+In the Recovery window open Utilities > Terminal and run the three `diskutil`
+commands the wrapper printed: erase the recovery partition into free space,
+repair the disk, grow the container. Shut the VM down from the Apple menu.
+Do this once. Every clone of `pristine` from then on starts with the full
+120 GB volume, and the recovery partition is gone from the test VMs, which
+they never needed.
+
+That Recovery boot is the only time `pristine` runs. tart has no snapshots.
+The pattern is a copy per run, and a local `tart clone` is an APFS clone that
+takes seconds.
 
 ### One-time: shorten the DHCP lease on the host
 
@@ -72,13 +87,13 @@ Terminal two. The image has one account, `admin`, password `admin`.
 a user of that name. Create it once per VM and work as it:
 
 ```zsh
-build/tart/vm prep run1               # grows the APFS container, then creates cjr (password admin)
+build/tart/vm adduser run1            # creates cjr, password admin, admin group
 TART_USER=cjr build/tart/vm ssh run1  # password: admin
 ```
 
-`prep` is `grow` then `adduser`; both exist on their own. Skip `grow` and
-the guest fills its original 50 GB volume part way through the brew step
-while the host shows a 120 GB image.
+`df -h /` inside should show about 120 GB. If it shows 41 GB, `pristine`
+was never grown from Recovery and the run will fill the disk part way
+through brew.
 
 For a run that stops before nix, `build/tart/vm ssh run1` as `admin` with
 `BOOTSTRAP_SKIP="editors hammerspoon nix"` is enough.
