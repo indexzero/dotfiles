@@ -50,8 +50,14 @@ cmd_new() {
 
 cmd_run() {
   need "${1:-}"
+  # Resolve the share first: VZ reports a missing path only as
+  # "A directory sharing device configuration is invalid".
+  local share="${~DOTFILES_HOME}"   # expand a literal ~
+  share="${share:A}"                # absolute, symlinks resolved
+  [[ -d "$share" ]] || die "DOTFILES_HOME='$DOTFILES_HOME' is not a directory (resolved: $share)"
+  print -r -- "sharing $share -> /Volumes/My Shared Files/dotfiles (ro)"
   # The window stays open on purpose: cask and CLT dialogs land there.
-  tart run "$1" --dir="dotfiles:$DOTFILES_HOME:ro"
+  tart run "$1" --dir="dotfiles:$share:ro"
 }
 
 cmd_ssh() {
