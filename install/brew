@@ -24,7 +24,9 @@ echo "Updating Homebrew..."
 brew update
 
 # Get the directory of this script
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# ${0:A:h}, not BASH_SOURCE: this is zsh, where BASH_SOURCE is unset and the
+# old form resolved to the current directory.
+SCRIPT_DIR="${0:A:h}"
 
 # Parse command line options
 CATEGORY=""
