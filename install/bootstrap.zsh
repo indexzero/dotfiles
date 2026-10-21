@@ -16,6 +16,10 @@
 #                     curl -fsSL .../<branch>/install/bootstrap.zsh | DOTFILES_REF=<branch> zsh
 #   DOTFILES_HOME   dev checkout          (default ~/Git/indexzero/dotfiles)
 #   DOTFILES_DIR    installed clone       (default ~/.local/share/dotfiles)
+#   BOOTSTRAP_PROFILE  desktop (default) or headless. headless omits the headed
+#                   brew sets (terminal, desktop; see install/brew.d/profiles)
+#                   and the ghostty settings link. Recorded in
+#                   $XDG_CONFIG_HOME/dotfiles/profile for install/brew and hostdiff.
 #   BOOTSTRAP_SKIP  space-separated steps to skip (default "editors hammerspoon")
 #   BOOTSTRAP_ONLY  space-separated steps to run, and nothing else
 #
@@ -31,6 +35,7 @@ bootstrap_main() {
   : "${DOTFILES_HOME:=$HOME/Git/indexzero/dotfiles}"
   : "${DOTFILES_DIR:=$HOME/.local/share/dotfiles}"
   : "${DOTFILES_REMOTE:=https://github.com/indexzero/dotfiles.git}"
+  : "${BOOTSTRAP_PROFILE:=desktop}"
   : "${BOOTSTRAP_SKIP:=editors hammerspoon}"
   : "${BOOTSTRAP_ONLY:=}"
   export DOTFILES_HOME DOTFILES_DIR DOTFILES_REMOTE
@@ -67,7 +72,8 @@ bootstrap_main() {
     [[ "$(uname -s)" == Darwin ]] || die "macOS only"
     [[ "$(uname -m)" == arm64 ]]  || die "Apple Silicon only (uname -m: $(uname -m))"
     [[ $EUID -ne 0 ]] || die "run as your user, not root; sudo is requested where needed"
-    note "ref=$DOTFILES_REF  checkout=$DOTFILES_HOME  clone=$DOTFILES_DIR"
+    note "ref=$DOTFILES_REF  profile=$BOOTSTRAP_PROFILE  checkout=$DOTFILES_HOME  clone=$DOTFILES_DIR"
+    case "$BOOTSTRAP_PROFILE" in desktop|headless) ;; *) die "BOOTSTRAP_PROFILE must be desktop or headless, not '$BOOTSTRAP_PROFILE'" ;; esac
     note "macOS $(sw_vers -productVersion)  $(uname -m)  user=$USER"
     [[ "$DOTFILES_REF" == main ]] || warn "DOTFILES_REF=$DOTFILES_REF: the clone will track that branch; 'hostdiff clone' reports it until you re-clone from main"
   }
@@ -148,8 +154,13 @@ bootstrap_main() {
     # to DOTFILES_REF reach the clone, not just the checkout.
     zsh "$DOTFILES_HOME/install/dotfiles" pull
     [[ -L "$HOME/.zshrc" ]] || die "install/dotfiles did not link ~/.zshrc"
+    # Record the profile once; install/brew and hostdiff read it from here on.
+    mkdir -p "$XDG_CONFIG_HOME/dotfiles"
+    print -r -- "$BOOTSTRAP_PROFILE" > "$XDG_CONFIG_HOME/dotfiles/profile"
+    note "profile $BOOTSTRAP_PROFILE recorded in $XDG_CONFIG_HOME/dotfiles/profile"
   }
 
+  # install/brew reads the recorded profile and omits its headed sets.
   step_brew() {
     zsh "$DOTFILES_HOME/install/brew"
   }
@@ -184,9 +195,15 @@ bootstrap_main() {
   # keeps its config elsewhere (atuin).
   step_settings() {
     local s
-    for s in starship worktrunk ghostty vale; do
+    for s in starship worktrunk vale; do
       zsh "$DOTFILES_HOME/install/$s"
     done
+    # ghostty is a terminal: headed only.
+    if [[ "$BOOTSTRAP_PROFILE" == headless ]]; then
+      note "ghostty settings skipped (headless)"
+    else
+      zsh "$DOTFILES_HOME/install/ghostty"
+    fi
     bash "$DOTFILES_HOME/install/atuin"
   }
 

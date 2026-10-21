@@ -62,8 +62,12 @@ For a run that stops before nix, `build/tart/vm ssh run1` as `admin` with
 Inside the VM, the honest test from a branch (`main` once it has the script):
 
 ```zsh
-curl -fsSL https://raw.githubusercontent.com/indexzero/dotfiles/<branch>/install/bootstrap.zsh | DOTFILES_REF=<branch> zsh 2>&1 | tee ~/bootstrap.log
+curl -fsSL https://raw.githubusercontent.com/indexzero/dotfiles/<branch>/install/bootstrap.zsh | DOTFILES_REF=<branch> BOOTSTRAP_PROFILE=headless zsh 2>&1 | tee ~/bootstrap.log
 ```
+
+`BOOTSTRAP_PROFILE=headless` omits the headed brew sets (`terminal`,
+`desktop`) and the ghostty link. A VM has no use for Warp or BetterDisplay,
+and the casks are the slow, dialog-prone part of the brew step.
 
 ### Edit-and-rerun without pushing
 
@@ -71,7 +75,7 @@ curl -fsSL https://raw.githubusercontent.com/indexzero/dotfiles/<branch>/install
 The script exports `DOTFILES_REMOTE`, so the clone can come from the mount:
 
 ```zsh
-DOTFILES_REMOTE="/Volumes/My Shared Files/dotfiles" DOTFILES_REF=<branch> \
+DOTFILES_REMOTE="/Volumes/My Shared Files/dotfiles" DOTFILES_REF=<branch> BOOTSTRAP_PROFILE=headless \
   zsh "/Volumes/My Shared Files/dotfiles/install/bootstrap.zsh" 2>&1 | tee ~/bootstrap.log
 ```
 
