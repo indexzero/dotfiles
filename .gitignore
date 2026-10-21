@@ -9,3 +9,7 @@ npm-debug.log
 .aider*
 .env
 audio-scan*/*
+
+# Dropped into the checkout when a tart VM mounts it as a shared volume (build/tart)
+.fseventsd/
+.Trashes/
