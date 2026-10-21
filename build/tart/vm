@@ -25,6 +25,7 @@ MEMORY="${TART_MEMORY:-16384}"
 DISK="${TART_DISK:-120}"
 USER_="${TART_USER:-admin}"
 DOTFILES_HOME="${DOTFILES_HOME:-$HOME/Git/indexzero/dotfiles}"
+SELF="${0:A}"   # $0 inside a zsh function is the function name, so capture the script path here
 
 die() { print -u2 -r -- "vm: $*"; exit 1; }
 need() { [[ -n "${1:-}" ]] || die "missing VM name"; }
@@ -78,12 +79,14 @@ cmd_ssh() {
 # user of that name. Create it once per VM, then run the bootstrap as it.
 cmd_adduser() {
   need "${1:-}"
-  local name="$1" user="${2:-cjr}"
-  TART_USER=admin "$0" ssh "$name" \
+  local name="$1" user="${2:-cjr}" saved="$USER_"
+  USER_=admin
+  cmd_ssh "$name" \
     "sudo sysadminctl -addUser '$user' -fullName '$user' -password admin -admin && \
      sudo dseditgroup -o edit -a '$user' -t user com.apple.access_ssh 2>/dev/null; \
      id '$user'"
-  print -r -- "created $user (password: admin). Next: TART_USER=$user $0 ssh $name"
+  USER_="$saved"
+  print -r -- "created $user (password: admin). Next: TART_USER=$user $SELF ssh $name"
 }
 
 cmd_reset() {
