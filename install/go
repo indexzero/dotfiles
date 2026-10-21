@@ -21,7 +21,8 @@ set -e
 GO_TOOLS=(
   "github.com/charmbracelet/glow/v2@latest"
   "github.com/mabd-dev/reposcan@latest"
-  "github.com/rafi/gits@latest"
+  # main package moved to cmd/gits (v0.25)
+  "github.com/rafi/gits/cmd/gits@latest"
   "github.com/chainguard-dev/yam@latest"
   "github.com/indexzero/skiffs@latest"
   # Pinned: reads API keys from ~/.config/fabric/.env, and upstream
