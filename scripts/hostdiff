@@ -242,7 +242,12 @@ check_symlinks() {
     fi
   }
 
-  _check_link "ghostty"   "$DOTFILES/settings/ghostty"              "$HOME/Library/Application Support/com.mitchellh.ghostty"
+  # ghostty is a terminal: a headless profile never links its settings.
+  if [[ "$(tr -d '[:space:]' < "${XDG_CONFIG_HOME:-$HOME/Library/Application Support}/dotfiles/profile" 2>/dev/null)" == headless ]]; then
+    _skip "ghostty (omitted by profile headless)"
+  else
+    _check_link "ghostty"   "$DOTFILES/settings/ghostty"              "$HOME/Library/Application Support/com.mitchellh.ghostty"
+  fi
   _check_link "mise"      "$DOTFILES/settings/mise"                 "$HOME/Library/Application Support/mise"
   _check_link "starship"  "$DOTFILES/settings/starship"             "$HOME/Library/Application Support/starship"
   _check_link "worktrunk" "$DOTFILES/settings/worktrunk/config.toml" "${XDG_CONFIG_HOME:-$HOME/.config}/worktrunk/config.toml" "install/worktrunk"

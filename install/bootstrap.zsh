@@ -268,9 +268,11 @@ bootstrap_main() {
   }
 
   step_doctor() {
+    # hostdiff is bash. Under zsh a `local` re-declared inside a loop prints
+    # the variable, which filled the doctor output with file=/out= lines.
     local hd="$DOTFILES_DIR/scripts/hostdiff"
     if [[ -x "$hd" ]]; then
-      zsh "$hd" || warn "hostdiff reports drift (see above)"
+      bash "$hd" || warn "hostdiff reports drift (see above)"
     fi
     print
     hdr "Done. Next, by hand:"
