@@ -36,6 +36,15 @@ bootstrap_main() {
   export DOTFILES_HOME DOTFILES_DIR DOTFILES_REMOTE
   export DOTFILES_BRANCH="$DOTFILES_REF"   # install/dotfiles clones this branch
 
+  # The same XDG layout dotfiles/.exports sets for interactive shells. Tools
+  # configured during this run (brew trust, mise) write under these paths and
+  # must agree with where the shell will look afterwards. .exports itself is
+  # not sourced here: it reads unset variables and runs compinit.
+  export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/Library/Application Support}"
+  export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/Library/Caches}"
+  export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/Library/Application Support}"
+  export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/Library/Application Support}"
+
   local -a STEPS=(
     preflight clt homebrew checkout dotfiles brew mise runtimes git
     settings editors hammerspoon nix doctor
