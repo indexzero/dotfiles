@@ -74,7 +74,7 @@ fi
 # Check if Homebrew is installed
 if ! command -v brew &> /dev/null; then
     echo "Installing Homebrew..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
     # Add Homebrew to PATH
     echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $HOME/.zprofile
@@ -88,11 +88,18 @@ echo "Updating Homebrew..."
 brew update
 
 # Homebrew refuses to load a formula or cask from a third-party tap until the
-# tap is trusted (brew trust; $XDG_CONFIG_HOME/homebrew/trust.json). A tap line in
-# brew.d is that decision already made, so trust every declared tap first.
-# Older brews have no `trust` command; skip quietly there.
+# tap is trusted (brew trust; $XDG_CONFIG_HOME/homebrew/trust.json). A tap named
+# in brew.d, on a tap line or inside a qualified user/tap/name, is that decision
+# already made, so trust every one first. Older brews have no `trust` command.
+declared_taps() {
+    {
+        grep -h '^tap "' "$SCRIPT_DIR"/brew.d/Brewfile.* | sed 's/^tap "\([^"]*\)".*/\1/'
+        grep -hE '^(brew|cask) "[^"/]+/[^"/]+/[^"]+"' "$SCRIPT_DIR"/brew.d/Brewfile.* \
+            | sed -E 's/^(brew|cask) "([^"/]+\/[^"/]+)\/[^"]+".*/\2/'
+    } | sort -u
+}
 if brew trust --help >/dev/null 2>&1; then
-    for tap in $(grep -h '^tap "' "$SCRIPT_DIR"/brew.d/Brewfile.* | sed 's/^tap "\([^"]*\)".*/\1/' | sort -u); do
+    for tap in $(declared_taps); do
         brew trust --tap "$tap" >/dev/null 2>&1 || echo "warning: could not trust tap $tap"
     done
 fi
