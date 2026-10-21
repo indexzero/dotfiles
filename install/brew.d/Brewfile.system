@@ -1,13 +1,9 @@
 # System Utilities
 
 brew "fastfetch"
-cask "only-switch"
-cask "pearcleaner"
 brew "mole"
 tap "cirruslabs/cli"
 brew "cirruslabs/cli/tart"
-cask "betterdisplay"
-cask "eul"
 # Parallel S3 and local filesystem execution tool
 brew "s5cmd"
 # Rsync for cloud storage

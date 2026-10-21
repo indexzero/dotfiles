@@ -4,7 +4,11 @@
 #   Install everything: brew bundle --file=install/brew.d/Brewfile
 #   Install specific category: brew bundle --file=install/brew.d/Brewfile.dev
 #
-# To install only specific categories, comment out the unwanted instances below
+# To install only specific categories, comment out the unwanted instances below.
+# install/brew does this by profile: see brew.d/profiles.
+
+# The shell layer: prompt, runtime manager, multiplexer
+instance_eval(File.read("#{__dir__}/Brewfile.shell"))
 
 # Development Tools
 instance_eval(File.read("#{__dir__}/Brewfile.dev"))
@@ -39,5 +43,8 @@ instance_eval(File.read("#{__dir__}/Brewfile.devops"))
 # Productivity Applications
 instance_eval(File.read("#{__dir__}/Brewfile.productivity"))
 
-# Terminal Emulators
-instance_eval(File.read("#{__dir__}/Brewfile.terminals"))
+# Terminal emulators (headed)
+instance_eval(File.read("#{__dir__}/Brewfile.terminal"))
+
+# Desktop applications (headed)
+instance_eval(File.read("#{__dir__}/Brewfile.desktop"))
