@@ -75,16 +75,29 @@ bootstrap_main() {
       die "/usr/bin/git refuses to run (Xcode license?). Fix: sudo xcodebuild -license accept, or sudo xcode-select --switch /Library/Developer/CommandLineTools"
     fi
     say "Installing Command Line Tools"
+    # The flag file makes softwareupdate list the CLT package. The label line
+    # looks like "* Label: Command Line Tools for Xcode 27.0-27.0" (a space
+    # after Xcode, then the version twice); take the whole label, newest last.
     local flag=/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress label
     touch "$flag"
-    label="$(softwareupdate -l 2>/dev/null | grep -o 'Command Line Tools for Xcode-[0-9.]*' | sort -V | tail -1 || true)"
+    label="$(softwareupdate -l 2>&1 \
+      | sed -n 's/^\* Label: \(Command Line Tools for Xcode.*\)$/\1/p' \
+      | sort -V | tail -1 || true)"
     if [[ -n "$label" ]]; then
+      say "softwareupdate -i \"$label\""
       sudo softwareupdate -i "$label" --verbose
     else
-      warn "softwareupdate found no CLT label; falling back to the GUI installer"
+      # The dialog from xcode-select only appears in a window session for
+      # this user. Over SSH there is none, so say what to do and poll.
+      warn "softwareupdate listed no Command Line Tools package"
       xcode-select --install 2>/dev/null || true
-      say "Waiting for the Command Line Tools installer to finish"
-      until xcode-select -p >/dev/null 2>&1; do sleep 10; done
+      say "Waiting for the Command Line Tools. If no dialog appeared (SSH session),"
+      say "open Terminal in the VM window and run: xcode-select --install"
+      local waited=0
+      until xcode-select -p >/dev/null 2>&1; do
+        sleep 10; (( waited += 10 ))
+        (( waited % 60 )) || note "still waiting (${waited}s); xcode-select --install in a window session, or sudo softwareupdate -i <label>"
+      done
     fi
     rm -f "$flag"
     xcode-select -p >/dev/null 2>&1 || die "Command Line Tools still missing"
