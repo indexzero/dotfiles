@@ -135,6 +135,9 @@ bootstrap_main() {
   step_dotfiles() {
     mkdir -p "$HOME/.backup"
     zsh "$DOTFILES_HOME/install/dotfiles" install
+    # On a re-run the clone already exists; fast-forward it so fixes pushed
+    # to DOTFILES_REF reach the clone, not just the checkout.
+    zsh "$DOTFILES_HOME/install/dotfiles" pull
     [[ -L "$HOME/.zshrc" ]] || die "install/dotfiles did not link ~/.zshrc"
   }
 
@@ -256,12 +259,16 @@ bootstrap_main() {
 # it reads, so it is in place before bootstrap_main starts.
 typeset -g  BOOTSTRAP_STEP=''
 typeset -ga BOOTSTRAP_FINISHED=()
+# Cheap steps that also carry fixes (checkout fetches, dotfiles pulls the
+# clone) are never offered as skips: a resume after a fix must re-run them.
+typeset -ga BOOTSTRAP_REFRESH=(preflight checkout dotfiles)
 bootstrap_resume_hint() {
   local rc="$1"
   [[ -n "$BOOTSTRAP_STEP" ]] || return 0
+  local -a done_skippable=(${BOOTSTRAP_FINISHED:|BOOTSTRAP_REFRESH})
   print -u2 -r -- ""
   print -u2 -r -- "bootstrap: step '$BOOTSTRAP_STEP' failed (exit $rc). Fix it, then resume with:"
-  print -u2 -r -- "  BOOTSTRAP_SKIP='${BOOTSTRAP_FINISHED[*]} ${BOOTSTRAP_SKIP:-}' DOTFILES_REF=${DOTFILES_REF:-main} zsh ${DOTFILES_HOME:-$HOME/Git/indexzero/dotfiles}/install/bootstrap.zsh"
+  print -u2 -r -- "  BOOTSTRAP_SKIP='${done_skippable[*]} ${BOOTSTRAP_SKIP:-}' DOTFILES_REF=${DOTFILES_REF:-main} zsh ${DOTFILES_HOME:-$HOME/Git/indexzero/dotfiles}/install/bootstrap.zsh"
 }
 TRAPZERR() { bootstrap_resume_hint $?; }
 
