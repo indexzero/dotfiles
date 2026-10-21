@@ -8,9 +8,13 @@
 #   vm new <name>             clone pristine -> <name>
 #   vm run <name>             boot <name> with the dotfiles checkout shared read-only
 #   vm ssh <name> [cmd...]    ssh $TART_USER@<name> (default admin, password: admin)
+#   vm grow <name>            grow the guest's APFS container to fill the disk.
+#                             `tart set --disk-size` grows the image only; the
+#                             guest keeps its 50 GB volume until this runs.
 #   vm adduser <name> [user]  create an admin account in the guest (default cjr,
 #                             password: admin). home.nix hardcodes cjr, so the
 #                             nix step needs this; then TART_USER=cjr vm ssh ...
+#   vm prep <name> [user]     grow + adduser, in one ssh session as admin
 #   vm reset <name>           delete <name> and clone it again from pristine
 #   vm rm <name>              delete <name>
 #
@@ -74,6 +78,28 @@ cmd_ssh() {
   ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${USER_}@${ip}" "$@"
 }
 
+# tart set --disk-size grows the raw image, and macOS does not grow the APFS
+# container to match on boot. Without this the guest fills its original 50 GB
+# volume while the host shows a 120 GB image. The physical store is the last
+# field of the "Apple_APFS Container" line; 0 means "as large as possible".
+cmd_grow() {
+  need "${1:-}"
+  local saved="$USER_"
+  USER_=admin
+  cmd_ssh "$1" \
+    "store=\$(diskutil list | awk '/Apple_APFS Container/ {print \$NF}' | head -1); \
+     echo \"container store: \$store\"; \
+     sudo diskutil apfs resizeContainer \"\$store\" 0 || echo 'resize refused (already at maximum?)'; \
+     df -h / | tail -1"
+  USER_="$saved"
+}
+
+cmd_prep() {
+  need "${1:-}"
+  cmd_grow "$1"
+  cmd_adduser "$1" "${2:-cjr}"
+}
+
 # The vanilla image has one account, admin/admin. home.nix pins
 # home.username = "cjr" and /Users/cjr, so the nix step only activates for a
 # user of that name. Create it once per VM, then run the bootstrap as it.
@@ -101,6 +127,6 @@ cmd_rm() {
 }
 
 case "${1:-}" in
-  tags|pristine|new|run|ssh|adduser|reset|rm) c="$1"; shift; "cmd_$c" "$@" ;;
-  *) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  tags|pristine|new|run|ssh|grow|adduser|prep|reset|rm) c="$1"; shift; "cmd_$c" "$@" ;;
+  *) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac

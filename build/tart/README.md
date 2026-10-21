@@ -28,10 +28,11 @@ build/tart/vm pristine ghcr.io/cirruslabs/macos-tahoe-vanilla:26.6.2
 ```
 
 That pulls the image (about 30 GB, cached in `~/.tart/cache`), names the VM
-`pristine`, and grows its disk to 120 GB before the first boot. All the
-Brewfile sets plus a Nix store do not fit the default disk. tart can only
-grow a disk, never shrink it, and doing it before the first boot lets the
-guest expand its container as it comes up.
+`pristine`, and grows its disk image to 120 GB. All the Brewfile sets plus a
+Nix store do not fit the default disk. tart can only grow a disk, never
+shrink it. Growing the image is half the job: macOS does not grow the APFS
+container inside the guest to match, so every running VM needs `vm grow`
+once, which `vm prep` does below.
 
 Never run `pristine` itself. tart has no snapshots. The pattern is a copy per
 run, and a local `tart clone` is an APFS clone that takes seconds.
@@ -71,9 +72,13 @@ Terminal two. The image has one account, `admin`, password `admin`.
 a user of that name. Create it once per VM and work as it:
 
 ```zsh
-build/tart/vm adduser run1            # creates cjr, password admin, admin group
+build/tart/vm prep run1               # grows the APFS container, then creates cjr (password admin)
 TART_USER=cjr build/tart/vm ssh run1  # password: admin
 ```
+
+`prep` is `grow` then `adduser`; both exist on their own. Skip `grow` and
+the guest fills its original 50 GB volume part way through the brew step
+while the host shows a 120 GB image.
 
 For a run that stops before nix, `build/tart/vm ssh run1` as `admin` with
 `BOOTSTRAP_SKIP="editors hammerspoon nix"` is enough.
