@@ -47,11 +47,17 @@ build/tart/vm new run1        # clone pristine -> run1
 build/tart/vm run run1        # boots it with ~/Git/indexzero/dotfiles shared read-only
 ```
 
-Terminal two:
+Terminal two. The image has one account, `admin`, password `admin`.
+`home.nix` pins `home.username = "cjr"`, so the nix step only activates for
+a user of that name. Create it once per VM and work as it:
 
 ```zsh
-build/tart/vm ssh run1        # password: admin
+build/tart/vm adduser run1            # creates cjr, password admin, admin group
+TART_USER=cjr build/tart/vm ssh run1  # password: admin
 ```
+
+For a run that stops before nix, `build/tart/vm ssh run1` as `admin` with
+`BOOTSTRAP_SKIP="editors hammerspoon nix"` is enough.
 
 Inside the VM, the honest test from a branch (`main` once it has the script):
 

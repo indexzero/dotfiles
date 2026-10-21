@@ -7,12 +7,15 @@
 #   vm pristine <image>       pull <image> as "pristine" and grow its disk
 #   vm new <name>             clone pristine -> <name>
 #   vm run <name>             boot <name> with the dotfiles checkout shared read-only
-#   vm ssh <name> [cmd...]    ssh admin@<name> (password: admin)
+#   vm ssh <name> [cmd...]    ssh $TART_USER@<name> (default admin, password: admin)
+#   vm adduser <name> [user]  create an admin account in the guest (default cjr,
+#                             password: admin). home.nix hardcodes cjr, so the
+#                             nix step needs this; then TART_USER=cjr vm ssh ...
 #   vm reset <name>           delete <name> and clone it again from pristine
 #   vm rm <name>              delete <name>
 #
 # Env: TART_PRISTINE (pristine), TART_CPU (6), TART_MEMORY (16384),
-#      TART_DISK (120), DOTFILES_HOME (~/Git/indexzero/dotfiles)
+#      TART_DISK (120), TART_USER (admin), DOTFILES_HOME (~/Git/indexzero/dotfiles)
 
 set -euo pipefail
 
@@ -20,6 +23,7 @@ PRISTINE="${TART_PRISTINE:-pristine}"
 CPU="${TART_CPU:-6}"
 MEMORY="${TART_MEMORY:-16384}"
 DISK="${TART_DISK:-120}"
+USER_="${TART_USER:-admin}"
 DOTFILES_HOME="${DOTFILES_HOME:-$HOME/Git/indexzero/dotfiles}"
 
 die() { print -u2 -r -- "vm: $*"; exit 1; }
@@ -66,7 +70,20 @@ cmd_ssh() {
   local ip
   ip="$(tart ip "$name")" || die "no IP yet for $name; is it running?"
   # Every clone gets a new MAC and IP; don't let known_hosts pile up.
-  ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "admin@$ip" "$@"
+  ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${USER_}@${ip}" "$@"
+}
+
+# The vanilla image has one account, admin/admin. home.nix pins
+# home.username = "cjr" and /Users/cjr, so the nix step only activates for a
+# user of that name. Create it once per VM, then run the bootstrap as it.
+cmd_adduser() {
+  need "${1:-}"
+  local name="$1" user="${2:-cjr}"
+  TART_USER=admin "$0" ssh "$name" \
+    "sudo sysadminctl -addUser '$user' -fullName '$user' -password admin -admin && \
+     sudo dseditgroup -o edit -a '$user' -t user com.apple.access_ssh 2>/dev/null; \
+     id '$user'"
+  print -r -- "created $user (password: admin). Next: TART_USER=$user $0 ssh $name"
 }
 
 cmd_reset() {
@@ -81,6 +98,6 @@ cmd_rm() {
 }
 
 case "${1:-}" in
-  tags|pristine|new|run|ssh|reset|rm) c="$1"; shift; "cmd_$c" "$@" ;;
-  *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  tags|pristine|new|run|ssh|adduser|reset|rm) c="$1"; shift; "cmd_$c" "$@" ;;
+  *) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac
