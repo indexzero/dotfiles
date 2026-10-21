@@ -36,9 +36,9 @@ echo "uv: $(uv --version)"
 #
 # They run on their own Python, one minor behind latest, not on mise's
 # `python = "latest"`. A new minor ships before the ecosystem has wheels
-# for it; aider's tiktoken pin had none for 3.15 and uv fell back to a
-# source build that PyO3 refused. uv downloads this version itself.
-# Bump deliberately, after the tools below install cleanly on it.
+# for it, and uv then falls back to source builds that need compilers,
+# Fortran, or BLAS. uv downloads this version itself. Bump deliberately,
+# after the tools below install cleanly on it with no "Building" lines.
 UV_TOOL_PYTHON="3.14"
 
 UV_TOOLS=(
