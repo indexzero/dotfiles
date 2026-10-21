@@ -8,7 +8,7 @@
 # the installed clone + symlinks (install/dotfiles), every Brewfile set, mise
 # and the runtimes, the per-tool installers, then Nix + the devenv machine
 # (install/nix). Every step is idempotent, so re-running after a failure is
-# the resume mechanism; BOOTSTRAP_SKIP trims steps you know are done.
+# the resume mechanism; a failed step prints the BOOTSTRAP_SKIP line to use.
 #
 # Knobs (environment):
 #   DOTFILES_REF    branch to check out and to clone into the install dir.
@@ -47,7 +47,7 @@ bootstrap_main() {
   hdr() { print -r -- "${BOLD}==> $*${RST}"; }
   note() { print -r -- "    ${DIM}$*${RST}"; }
   warn() { print -u2 -r -- "${YEL}bootstrap:${RST} $*"; }
-  die()  { print -u2 -r -- "${RED}bootstrap:${RST} $*"; exit 1; }
+  die()  { print -u2 -r -- "${RED}bootstrap:${RST} $*"; bootstrap_resume_hint 1; exit 1; }
 
   # Prompts (sudo, gum, read) need a terminal. Under `curl | zsh` stdin is the
   # pipe, so hand the children the tty instead.
@@ -225,8 +225,12 @@ bootstrap_main() {
   }
 
   # ── runner ──────────────────────────────────────────────────────────────────
+  # Steps run as plain commands, never inside `if !` or `||`: zsh turns
+  # ERR_EXIT off for a function called from a condition, and a failing
+  # installer would then slide into the next line. A failure trips the ZERR
+  # trap (top level), which prints how to resume, and then exits the shell.
   local -a skip=(${=BOOTSTRAP_SKIP}) only=(${=BOOTSTRAP_ONLY})
-  local s t0 t1 finished=()
+  local s t0
   for s in $STEPS; do
     # (I) yields an index, 0 when absent; (r) yields an empty match, which
     # set -u reports as an unset parameter.
@@ -234,19 +238,31 @@ bootstrap_main() {
     if (( ${skip[(I)$s]} )); then hdr "$s ${DIM}(skipped)${RST}"; continue; fi
     hdr "$s"
     t0=$SECONDS
-    if ! "step_$s"; then
-      print
-      die "step '$s' failed. Fix it, then resume with:
-  BOOTSTRAP_SKIP='${finished[*]} $BOOTSTRAP_SKIP' DOTFILES_REF=$DOTFILES_REF zsh $DOTFILES_HOME/install/bootstrap.zsh"
-    fi
-    t1=$SECONDS
-    note "$s ok ($((t1 - t0))s)"
-    finished+=("$s")
+    BOOTSTRAP_STEP="$s"
+    "step_$s"
+    BOOTSTRAP_STEP=''
+    note "$s ok ($((SECONDS - t0))s)"
+    BOOTSTRAP_FINISHED+=("$s")
   done
 
   print
   hdr "${GRN}bootstrap complete${RST}"
   note "exec zsh -l   # or open a new terminal"
 }
+
+# An ERR_EXIT exit in zsh runs no EXIT trap, but ZERR fires first, on the
+# failing command itself. It stays quiet for handled failures: conditions,
+# `|| true`, `cond && { }`, loop tests. Defined at top level, with the state
+# it reads, so it is in place before bootstrap_main starts.
+typeset -g  BOOTSTRAP_STEP=''
+typeset -ga BOOTSTRAP_FINISHED=()
+bootstrap_resume_hint() {
+  local rc="$1"
+  [[ -n "$BOOTSTRAP_STEP" ]] || return 0
+  print -u2 -r -- ""
+  print -u2 -r -- "bootstrap: step '$BOOTSTRAP_STEP' failed (exit $rc). Fix it, then resume with:"
+  print -u2 -r -- "  BOOTSTRAP_SKIP='${BOOTSTRAP_FINISHED[*]} ${BOOTSTRAP_SKIP:-}' DOTFILES_REF=${DOTFILES_REF:-main} zsh ${DOTFILES_HOME:-$HOME/Git/indexzero/dotfiles}/install/bootstrap.zsh"
+}
+TRAPZERR() { bootstrap_resume_hint $?; }
 
 bootstrap_main "$@"
