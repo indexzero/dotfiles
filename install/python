@@ -29,6 +29,14 @@ echo "uv: $(uv --version)"
 
 # Global Python tools, one isolated environment each. Present tools are
 # skipped unless --upgrade, like install/npm, install/go and install/cargo.
+#
+# They run on their own Python, one minor behind latest, not on mise's
+# `python = "latest"`. A new minor ships before the ecosystem has wheels
+# for it; aider's tiktoken pin had none for 3.15 and uv fell back to a
+# source build that PyO3 refused. uv downloads this version itself.
+# Bump deliberately, after the tools below install cleanly on it.
+UV_TOOL_PYTHON="3.14"
+
 UV_TOOLS=(
   poetry
   pipreqs      # pipreqs ./  — minimal requirements.txt for the project
@@ -42,6 +50,6 @@ for tool in "${UV_TOOLS[@]}"; do
     echo "  uv -> $tool (present)"
     continue
   fi
-  echo "  uv -> $tool"
-  uv tool install --upgrade "$tool"
+  echo "  uv -> $tool (python $UV_TOOL_PYTHON)"
+  uv tool install --upgrade --python "$UV_TOOL_PYTHON" "$tool"
 done

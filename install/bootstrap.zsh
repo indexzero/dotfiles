@@ -327,9 +327,11 @@ bootstrap_resume_hint() {
   local rc="$1"
   [[ -n "$BOOTSTRAP_STEP" ]] || return 0
   local -a done_skippable=(${BOOTSTRAP_FINISHED:|BOOTSTRAP_REFRESH})
+  local skips="${done_skippable[*]} ${BOOTSTRAP_SKIP:-}"
+  skips="${${skips## }%% }"
   print -u2 -r -- ""
   print -u2 -r -- "bootstrap: step '$BOOTSTRAP_STEP' failed (exit $rc). Fix it, then resume with:"
-  print -u2 -r -- "  BOOTSTRAP_SKIP='${done_skippable[*]} ${BOOTSTRAP_SKIP:-}' BOOTSTRAP_PROFILE=${BOOTSTRAP_PROFILE:-desktop} DOTFILES_REF=${DOTFILES_REF:-main} zsh ${DOTFILES_HOME:-$HOME/Git/indexzero/dotfiles}/install/bootstrap.zsh"
+  print -u2 -r -- "  BOOTSTRAP_SKIP='$skips' BOOTSTRAP_PROFILE=${BOOTSTRAP_PROFILE:-desktop} DOTFILES_REF=${DOTFILES_REF:-main} zsh ${DOTFILES_HOME:-$HOME/Git/indexzero/dotfiles}/install/bootstrap.zsh"
 }
 TRAPZERR() { bootstrap_resume_hint $?; }
 
