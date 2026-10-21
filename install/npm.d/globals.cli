@@ -1,4 +1,6 @@
 # Command-line utilities
+# pnpm itself comes from npm; install/npm makes sure it exists before any pnpm line
+npm pnpm
 npm json
 npm fx
 npm http-server

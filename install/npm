@@ -37,6 +37,37 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# ~/.npmrc first. dotfiles/.security exports npm_config_* for interactive
+# shells; a non-interactive run (the bootstrap) has none of them, and a global
+# install with scripts enabled is exactly the hole .security closes. Write the
+# same keys into ~/.npmrc so they hold for every npm invocation, plus the
+# prefix that keeps globals in ~/.local/bin across mise node versions.
+# `npm config set` edits ~/.npmrc in place; other keys (auth tokens) stay.
+SECURITY="$SCRIPT_DIR/../dotfiles/.security"
+ensure_npmrc() {
+    echo "Applying ${SECURITY:t} to ~/.npmrc..."
+    local line key val
+    while IFS= read -r line; do
+        [[ "$line" == export\ npm_config_* ]] || continue
+        key="${line#export npm_config_}"; key="${key%%=*}"; key="${key//_/-}"
+        val="${line#*=}"; val="${val#\'}"; val="${val%\'}"
+        npm config set --location=user "$key" "$val"
+    done < "$SECURITY"
+    npm config set --location=user prefix "$HOME/.local"
+}
+
+# pnpm comes from npm, so it must exist before any "pnpm" line. bun comes from
+# mise. PNPM_HOME mirrors .zshrc so `pnpm add -g` has a global bin dir here.
+export PNPM_HOME="${PNPM_HOME:-$HOME/Library/pnpm}"
+export PATH="$PNPM_HOME:$HOME/.local/bin:$PATH"
+ensure_managers() {
+    if ! command -v pnpm >/dev/null 2>&1; then
+        echo "Installing pnpm with npm..."
+        npm install -g pnpm
+    fi
+    command -v bun >/dev/null 2>&1 || echo "warning: bun not found (mise installs it); bun lines will fail" >&2
+}
+
 install_pkg() {
     local mgr="$1" pkg="$2"
     echo "  $mgr -> $pkg"
@@ -60,6 +91,9 @@ install_file() {
         install_pkg "$mgr" "$pkg"
     done < "$file"
 }
+
+ensure_npmrc
+ensure_managers
 
 if [[ -n "$SET" ]]; then
     install_file "$NPM_D/globals.$SET"
