@@ -19,6 +19,10 @@ case "${1:-}" in
 esac
 
 export PATH="$HOME/.local/bin:$PATH"
+# uv puts tool executables under XDG_DATA_HOME/../bin, which is ~/Library/bin
+# here and on no PATH. Pin them next to uv itself. .exports sets the same for
+# interactive `uv tool install`.
+export UV_TOOL_BIN_DIR="$HOME/.local/bin"
 
 if ! command -v uv >/dev/null 2>&1; then
   echo "Installing uv..."
@@ -41,7 +45,6 @@ UV_TOOLS=(
   poetry
   pipreqs      # pipreqs ./  — minimal requirements.txt for the project
   pipdeptree   # pipdeptree --warn silence > dependency_tree.txt
-  aider-chat   # aider, in a git repo, with ANTHROPIC_API_KEY or OPENAI_API_KEY set
 )
 
 INSTALLED="$(uv tool list 2>/dev/null | awk 'NF && $1 !~ /^-/ {print $1}')"

@@ -58,8 +58,13 @@ if ! command -v go >/dev/null 2>&1; then
   echo "go is not on PATH; it comes from mise. Run install/mise first." >&2
   exit 1
 fi
-echo "Go: $(go version | awk '{print $3}')  GOBIN: ${GOBIN:-$(go env GOPATH)/bin}"
-export PATH="$PATH:${GOBIN:-$(go env GOPATH)/bin}"
+# Where `go install` puts binaries. Under mise, the go shim sets GOBIN to
+# mise's install dir and exposes binaries through shims after a reshim;
+# `go env GOBIN` reports it even when the variable is not in this process.
+GOBIN_DIR="$(go env GOBIN)"
+[[ -n "$GOBIN_DIR" ]] || GOBIN_DIR="$(go env GOPATH)/bin"
+echo "Go: $(go version | awk '{print $3}')  GOBIN: $GOBIN_DIR"
+export PATH="$PATH:$GOBIN_DIR"
 
 # The binary name: strip @version, then a /vN major suffix, then the path.
 # github.com/charmbracelet/glow/v2@latest -> glow, not v2.
@@ -83,6 +88,8 @@ for tool in "${GO_TOOLS[@]}"; do
   echo "  go -> $tool"
   go install "$tool"
 done
+# New binaries in mise's GOBIN need shims before other shells see them.
+command -v mise >/dev/null 2>&1 && mise reshim
 
 echo ""
 echo "Installed tools:"
