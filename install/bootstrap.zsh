@@ -215,8 +215,10 @@ bootstrap_main() {
   local -a skip=(${=BOOTSTRAP_SKIP}) only=(${=BOOTSTRAP_ONLY})
   local s t0 t1 finished=()
   for s in $STEPS; do
-    if (( ${#only} )) && [[ -z "${only[(r)$s]}" ]]; then continue; fi
-    if [[ -n "${skip[(r)$s]}" ]]; then hdr "$s ${DIM}(skipped)${RST}"; continue; fi
+    # (I) yields an index, 0 when absent; (r) yields an empty match, which
+    # set -u reports as an unset parameter.
+    if (( ${#only} )) && (( ! ${only[(I)$s]} )); then continue; fi
+    if (( ${skip[(I)$s]} )); then hdr "$s ${DIM}(skipped)${RST}"; continue; fi
     hdr "$s"
     t0=$SECONDS
     if ! "step_$s"; then
