@@ -13,16 +13,22 @@ NPM_D="$SCRIPT_DIR/npm.d"
 
 # Parse options
 SET=""
+UPGRADE=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --set|-s)
             SET="$2"
             shift 2
             ;;
+        --upgrade|-u)
+            UPGRADE=1
+            shift
+            ;;
         --help|-h)
             echo "Usage: $0 [options]"
             echo "Options:"
             echo "  --set, -s <name>  Install only globals.<name> (cli, dev, llms, docs, ...)"
+            echo "  --upgrade, -u     Reinstall packages that are already present (pulls latest)"
             echo "  --help, -h        Show this help message"
             echo ""
             echo "Without options, installs every set in $NPM_D."
@@ -70,8 +76,37 @@ ensure_managers() {
     command -v bun >/dev/null 2>&1 || echo "warning: bun not found (mise installs it); bun lines will fail" >&2
 }
 
+# What is already installed, read once per manager. Like install/go and
+# install/cargo, a present package is skipped; --upgrade reinstalls, which
+# is how "latest" happens. Versions are not recorded in the ledger.
+INSTALLED_NPM=""
+INSTALLED_PNPM=""
+read_installed() {
+    INSTALLED_NPM="$(npm ls -g --depth=0 --json 2>/dev/null \
+        | python3 -I -c 'import sys,json;print("\n".join(json.load(sys.stdin).get("dependencies",{})))' 2>/dev/null || true)"
+    if command -v pnpm >/dev/null 2>&1; then
+        INSTALLED_PNPM="$(pnpm ls -g --json 2>/dev/null \
+            | python3 -I -c 'import sys,json
+d=json.load(sys.stdin); d=d if isinstance(d,list) else [d]
+print("\n".join(k for p in d for k in p.get("dependencies",{})))' 2>/dev/null || true)"
+    fi
+}
+is_installed() {
+    local mgr="$1" pkg="$2" have
+    case "$mgr" in
+        npm)  have="$INSTALLED_NPM" ;;
+        pnpm) have="$INSTALLED_PNPM" ;;
+        *)    return 1 ;;
+    esac
+    [[ $'\n'"$have"$'\n' == *$'\n'"$pkg"$'\n'* ]]
+}
+
 install_pkg() {
     local mgr="$1" pkg="$2"
+    if [[ -z "$UPGRADE" ]] && is_installed "$mgr" "$pkg"; then
+        echo "  $mgr -> $pkg (present)"
+        return 0
+    fi
     echo "  $mgr -> $pkg"
     case "$mgr" in
         npm)  npm install -g "$pkg" ;;
@@ -96,6 +131,7 @@ install_file() {
 
 ensure_npmrc
 ensure_managers
+read_installed
 
 if [[ -n "$SET" ]]; then
     install_file "$NPM_D/globals.$SET"
