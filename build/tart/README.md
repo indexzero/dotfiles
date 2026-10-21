@@ -36,6 +36,25 @@ guest expand its container as it comes up.
 Never run `pristine` itself. tart has no snapshots. The pattern is a copy per
 run, and a local `tart clone` is an APFS clone that takes seconds.
 
+### One-time: shorten the DHCP lease on the host
+
+macOS hands every VM an address from one block of about 253. A lease lasts
+a day by default. Every clone has a new MAC address and therefore takes a
+new lease, so a day of reset-and-rerun can empty the block. `tart ip` then
+never returns and `vm ssh` cannot connect. Shorten the lease to ten
+minutes once; the setting survives reboots.
+
+```zsh
+sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.InternetSharing.default.plist bootpd -dict DHCPLeaseTimeSecs -int 600
+```
+
+If the block is already empty, remove the lease file. The next VM boot
+recreates it.
+
+```zsh
+sudo rm /var/db/dhcpd_leases
+```
+
 ## Each run
 
 Terminal one. Leave the window open: cask installers and permission dialogs
