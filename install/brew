@@ -65,6 +65,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Homebrew refuses to load a formula or cask from a third-party tap until the
+# tap is trusted (brew trust; $XDG_CONFIG_HOME/homebrew/trust.json). A tap line in
+# brew.d is that decision already made, so trust every declared tap first.
+# Older brews have no `trust` command; skip quietly there.
+if brew trust --help >/dev/null 2>&1; then
+    for tap in $(grep -h '^tap "' "$SCRIPT_DIR"/brew.d/Brewfile.* | sed 's/^tap "\([^"]*\)".*/\1/' | sort -u); do
+        brew trust --tap "$tap" >/dev/null 2>&1 || echo "warning: could not trust tap $tap"
+    done
+fi
+
 # Install from Brewfiles
 if [[ -n "$CATEGORY" ]]; then
     BREWFILE="$SCRIPT_DIR/brew.d/Brewfile.$CATEGORY"
