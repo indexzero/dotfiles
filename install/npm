@@ -57,9 +57,11 @@ ensure_npmrc() {
 }
 
 # pnpm comes from npm, so it must exist before any "pnpm" line. bun comes from
-# mise. PNPM_HOME mirrors .zshrc so `pnpm add -g` has a global bin dir here.
+# mise. PNPM_HOME mirrors .zshrc so `pnpm add -g` has a global bin dir here;
+# pnpm >= 11 uses $PNPM_HOME/bin and refuses to add globals unless it is on
+# PATH, pnpm <= 10 uses $PNPM_HOME, so both are added like .zshrc does.
 export PNPM_HOME="${PNPM_HOME:-$HOME/Library/pnpm}"
-export PATH="$PNPM_HOME:$HOME/.local/bin:$PATH"
+export PATH="$PNPM_HOME/bin:$PNPM_HOME:$HOME/.local/bin:$PATH"
 ensure_managers() {
     if ! command -v pnpm >/dev/null 2>&1; then
         echo "Installing pnpm with npm..."

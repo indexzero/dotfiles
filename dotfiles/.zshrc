@@ -166,10 +166,12 @@ export GITHUB_TOKEN=$(gh auth token)
 eval "$(atuin init zsh)"
 
 # pnpm
+# pnpm <= 10 puts global binaries in $PNPM_HOME, pnpm >= 11 in $PNPM_HOME/bin.
+# Both go on PATH so a fresh machine (latest pnpm) and an older install agree.
 export PNPM_HOME="$HOME/Library/pnpm"
 case ":$PATH:" in
-  *":$PNPM_HOME:"*) ;;
-  *) export PATH="$PNPM_HOME:$PATH" ;;
+  *":$PNPM_HOME/bin:"*) ;;
+  *) export PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
 
