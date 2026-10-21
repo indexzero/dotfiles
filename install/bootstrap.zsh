@@ -16,10 +16,12 @@
 #                     curl -fsSL .../<branch>/install/bootstrap.zsh | DOTFILES_REF=<branch> zsh
 #   DOTFILES_HOME   dev checkout          (default ~/Git/indexzero/dotfiles)
 #   DOTFILES_DIR    installed clone       (default ~/.local/share/dotfiles)
-#   BOOTSTRAP_PROFILE  desktop (default) or headless. headless omits the headed
-#                   brew sets (terminal, desktop; see install/brew.d/profiles)
-#                   and the ghostty settings link. Recorded in
-#                   $XDG_CONFIG_HOME/dotfiles/profile for install/brew and hostdiff.
+#   BOOTSTRAP_PROFILE  desktop or headless. headless omits the brew sets a
+#                   machine without a display has no use for (terminal,
+#                   desktop, databases; see install/brew.d/profiles) and the
+#                   ghostty settings link. Recorded once in
+#                   $XDG_CONFIG_HOME/dotfiles/profile; a re-run defaults to
+#                   the recorded value, a blank machine to desktop.
 #   BOOTSTRAP_SKIP  space-separated steps to skip (default "editors hammerspoon")
 #   BOOTSTRAP_ONLY  space-separated steps to run, and nothing else
 #
@@ -35,7 +37,6 @@ bootstrap_main() {
   : "${DOTFILES_HOME:=$HOME/Git/indexzero/dotfiles}"
   : "${DOTFILES_DIR:=$HOME/.local/share/dotfiles}"
   : "${DOTFILES_REMOTE:=https://github.com/indexzero/dotfiles.git}"
-  : "${BOOTSTRAP_PROFILE:=desktop}"
   : "${BOOTSTRAP_SKIP:=editors hammerspoon}"
   : "${BOOTSTRAP_ONLY:=}"
   export DOTFILES_HOME DOTFILES_DIR DOTFILES_REMOTE
@@ -49,6 +50,15 @@ bootstrap_main() {
   export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/Library/Caches}"
   export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/Library/Application Support}"
   export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/Library/Application Support}"
+
+  # The profile is a property of the machine. Once recorded, a re-run keeps
+  # it unless BOOTSTRAP_PROFILE says otherwise; only a blank machine defaults
+  # to desktop.
+  local profile_file="$XDG_CONFIG_HOME/dotfiles/profile"
+  if [[ -z "${BOOTSTRAP_PROFILE:-}" && -r "$profile_file" ]]; then
+    BOOTSTRAP_PROFILE="$(tr -d '[:space:]' < "$profile_file")"
+  fi
+  : "${BOOTSTRAP_PROFILE:=desktop}"
 
   local -a STEPS=(
     preflight clt homebrew checkout dotfiles brew mise runtimes git
@@ -66,6 +76,25 @@ bootstrap_main() {
   # Prompts (sudo, gum, read) need a terminal. Under `curl | zsh` stdin is the
   # pipe, so hand the children the tty instead.
   if [[ -r /dev/tty ]]; then exec </dev/tty; fi
+
+  # ── activation ──────────────────────────────────────────────────────────────
+  # What is already installed gets activated for this process on every run,
+  # independent of which steps are skipped. A resume that skipped the
+  # homebrew step once ran the Homebrew installer again because brew was
+  # not on PATH. The install steps still activate what they just installed.
+  activate_present() {
+    if [[ -x /opt/homebrew/bin/brew ]]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    fi
+    export MISE_DATA_DIR="${MISE_DATA_DIR:-$HOME/.local/share/mise}"
+    export MISE_STATE_DIR="${MISE_STATE_DIR:-$HOME/.local/state/mise}"
+    if command -v mise >/dev/null 2>&1; then
+      eval "$(mise activate zsh --shims)"
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+    local daemon=/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+    if [[ -r "$daemon" ]]; then set +u; source "$daemon"; set -u; fi
+  }
 
   # ── steps ───────────────────────────────────────────────────────────────────
   step_preflight() {
@@ -260,6 +289,12 @@ bootstrap_main() {
   # trap (top level), which prints how to resume, and then exits the shell.
   local -a skip=(${=BOOTSTRAP_SKIP}) only=(${=BOOTSTRAP_ONLY})
   local s t0
+  # BOOTSTRAP_SKIP and BOOTSTRAP_ONLY name steps, not brew sets or profiles;
+  # an unknown name is a mistake, not a no-op.
+  for s in $skip $only; do
+    (( ${STEPS[(I)$s]} )) || die "'$s' is not a step. Steps: ${STEPS[*]}. Brew sets are chosen by BOOTSTRAP_PROFILE."
+  done
+  activate_present
   for s in $STEPS; do
     # (I) yields an index, 0 when absent; (r) yields an empty match, which
     # set -u reports as an unset parameter.
@@ -294,7 +329,7 @@ bootstrap_resume_hint() {
   local -a done_skippable=(${BOOTSTRAP_FINISHED:|BOOTSTRAP_REFRESH})
   print -u2 -r -- ""
   print -u2 -r -- "bootstrap: step '$BOOTSTRAP_STEP' failed (exit $rc). Fix it, then resume with:"
-  print -u2 -r -- "  BOOTSTRAP_SKIP='${done_skippable[*]} ${BOOTSTRAP_SKIP:-}' DOTFILES_REF=${DOTFILES_REF:-main} zsh ${DOTFILES_HOME:-$HOME/Git/indexzero/dotfiles}/install/bootstrap.zsh"
+  print -u2 -r -- "  BOOTSTRAP_SKIP='${done_skippable[*]} ${BOOTSTRAP_SKIP:-}' BOOTSTRAP_PROFILE=${BOOTSTRAP_PROFILE:-desktop} DOTFILES_REF=${DOTFILES_REF:-main} zsh ${DOTFILES_HOME:-$HOME/Git/indexzero/dotfiles}/install/bootstrap.zsh"
 }
 TRAPZERR() { bootstrap_resume_hint $?; }
 

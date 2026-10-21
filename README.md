@@ -34,9 +34,10 @@ how you resume. `BOOTSTRAP_SKIP="brew nix"` skips steps;
 unless asked for.
 
 A machine without a display takes the `headless` profile, which omits the
-headed brew sets (`terminal`, `desktop`) and the ghostty link. The profile
-is recorded once in `$XDG_CONFIG_HOME/dotfiles/profile`; `install/brew` and
-`hostdiff` honour it from then on. See `install/brew.d/profiles`.
+brew sets it has no use for (`terminal`, `desktop`, `databases`) and the
+ghostty link. The profile is recorded once in
+`$XDG_CONFIG_HOME/dotfiles/profile`; `install/brew`, `hostdiff`, and later
+bootstrap runs honour it from then on. See `install/brew.d/profiles`.
 
 To try a branch before it merges, in a VM:
 
