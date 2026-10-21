@@ -7,6 +7,70 @@ set -e
 
 echo "Setting up Homebrew and installing packages..."
 
+# Get the directory of this script
+# ${0:A:h}, not BASH_SOURCE: this is zsh, where BASH_SOURCE is unset and the
+# old form resolved to the current directory.
+SCRIPT_DIR="${0:A:h}"
+
+# Which sets to omit. Precedence: --without, then the machine profile recorded
+# by install/bootstrap.zsh in $XDG_CONFIG_HOME/dotfiles/profile, mapped through
+# brew.d/profiles. Nothing recorded means the desktop profile: every set.
+PROFILE_FILE="${XDG_CONFIG_HOME:-$HOME/Library/Application Support}/dotfiles/profile"
+sets_omitted_by_profile() {
+    local profile="$1" name rest
+    while read -r name rest; do
+        [[ -z "$name" || "$name" == \#* ]] && continue
+        [[ "$name" == "$profile" ]] && { echo "$rest"; return 0; }
+    done < "$SCRIPT_DIR/brew.d/profiles"
+    return 1
+}
+
+CATEGORY=""
+WITHOUT=""
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --category|-c)
+            CATEGORY="$2"
+            shift 2
+            ;;
+        --without|-w)
+            WITHOUT="${2//,/ }"
+            shift 2
+            ;;
+        --help|-h)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  --category, -c <set>        Install one set only"
+            echo "  --without, -w <set,set>     Install every set except these"
+            echo "  --help, -h                  Show this help message"
+            echo ""
+            echo "Sets:"
+            for f in "$SCRIPT_DIR"/brew.d/Brewfile.*; do
+                printf '  %-14s %s\n' "${f##*/Brewfile.}" "$(sed -n '1s/^# *//p' "$f")"
+            done
+            echo ""
+            echo "Without options, installs every set the machine profile allows."
+            echo "Profile: $PROFILE_FILE (see brew.d/profiles)"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
+if [[ -z "$WITHOUT" && -f "$PROFILE_FILE" ]]; then
+    PROFILE="$(tr -d '[:space:]' < "$PROFILE_FILE")"
+    if WITHOUT="$(sets_omitted_by_profile "$PROFILE")"; then
+        [[ -n "$WITHOUT" ]] && echo "Profile $PROFILE: omitting ${WITHOUT// /, }"
+    else
+        echo "warning: unknown profile '$PROFILE' in $PROFILE_FILE; installing every set"
+        WITHOUT=""
+    fi
+fi
+
 # Check if Homebrew is installed
 if ! command -v brew &> /dev/null; then
     echo "Installing Homebrew..."
@@ -23,48 +87,6 @@ fi
 echo "Updating Homebrew..."
 brew update
 
-# Get the directory of this script
-# ${0:A:h}, not BASH_SOURCE: this is zsh, where BASH_SOURCE is unset and the
-# old form resolved to the current directory.
-SCRIPT_DIR="${0:A:h}"
-
-# Parse command line options
-CATEGORY=""
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --category|-c)
-            CATEGORY="$2"
-            shift 2
-            ;;
-        --help|-h)
-            echo "Usage: $0 [options]"
-            echo "Options:"
-            echo "  --category, -c <category>  Install specific category (dev, cli, vcs, etc.)"
-            echo "  --help, -h                 Show this help message"
-            echo ""
-            echo "Categories:"
-            echo "  dev          - Development tools"
-            echo "  vcs          - Version control systems"
-            echo "  cli          - Command line utilities"
-            echo "  docs         - Documentation & visualization"
-            echo "  databases    - Database systems"
-            echo "  media        - Media processing"
-            echo "  system       - System utilities"
-            echo "  network      - Network & security"
-            echo "  productivity - Productivity apps"
-            echo "  terminals    - Terminal emulators"
-            echo ""
-            echo "Without options, installs everything from all categories."
-            exit 0
-            ;;
-        *)
-            echo "Unknown option: $1"
-            echo "Use --help for usage information"
-            exit 1
-            ;;
-    esac
-done
-
 # Homebrew refuses to load a formula or cask from a third-party tap until the
 # tap is trusted (brew trust; $XDG_CONFIG_HOME/homebrew/trust.json). A tap line in
 # brew.d is that decision already made, so trust every declared tap first.
@@ -75,28 +97,36 @@ if brew trust --help >/dev/null 2>&1; then
     done
 fi
 
-# Install from Brewfiles
+# Install set by set, so a profile can omit some. The master Brewfile stays
+# for `brew bundle` by hand; it always means everything.
+is_omitted() { [[ " $WITHOUT " == *" $1 "* ]]; }
+
 if [[ -n "$CATEGORY" ]]; then
     BREWFILE="$SCRIPT_DIR/brew.d/Brewfile.$CATEGORY"
     if [[ -f "$BREWFILE" ]]; then
-        echo "Installing packages from $CATEGORY category..."
+        echo "Installing the $CATEGORY set..."
         brew bundle --file="$BREWFILE"
     else
-        echo "Error: Category '$CATEGORY' not found"
-        echo "Available categories: dev, vcs, cli, docs, databases, media, system, network, productivity, terminals"
+        echo "Error: set '$CATEGORY' not found"
+        echo "Available: $(ls "$SCRIPT_DIR"/brew.d/Brewfile.* | sed 's|.*/Brewfile\.||' | tr '\n' ' ')"
         exit 1
     fi
 else
-    echo "Installing all packages from Brewfiles..."
-    brew bundle --file="$SCRIPT_DIR/brew.d/Brewfile"
+    for BREWFILE in "$SCRIPT_DIR"/brew.d/Brewfile.*; do
+        SET="${BREWFILE##*/Brewfile.}"
+        if is_omitted "$SET"; then
+            echo "Skipping the $SET set (omitted)"
+            continue
+        fi
+        echo "Installing the $SET set..."
+        brew bundle --file="$BREWFILE"
+    done
 fi
 
 echo "Installation complete!"
 echo ""
-echo "To install specific categories only, run:"
-echo "  $0 --category dev"
-echo "  $0 --category cli"
-echo "  etc."
+echo "One set:          $0 --category dev"
+echo "All but some:     $0 --without terminal,desktop"
 echo ""
 echo "Database services notes:"
 echo "  MySQL: brew services start mysql"

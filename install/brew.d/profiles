@@ -1,0 +1,6 @@
+# Machine profiles: which sets a profile omits. One per line:
+#   <profile>  <sets omitted, space-separated>
+# install/bootstrap.zsh records the chosen profile in
+# $XDG_CONFIG_HOME/dotfiles/profile; install/brew and hostdiff read both.
+desktop
+headless  terminal desktop

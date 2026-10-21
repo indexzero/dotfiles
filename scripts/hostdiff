@@ -260,9 +260,22 @@ check_brew() {
   local brewfile_dir="$DOTFILES/install/brew.d"
   local any_diff=0
 
+  # Sets the machine profile omits (install/bootstrap.zsh records the profile;
+  # brew.d/profiles maps it). Those are not drift on this machine.
+  local profile_file="${XDG_CONFIG_HOME:-$HOME/Library/Application Support}/dotfiles/profile"
+  local profile="" omitted=""
+  if [[ -f "$profile_file" ]]; then
+    profile="$(tr -d '[:space:]' < "$profile_file")"
+    omitted="$(awk -v p="$profile" '$1 == p { $1 = ""; print }' "$brewfile_dir/profiles")"
+  fi
+
   for brewfile in "$brewfile_dir"/Brewfile.*; do
     local bfname out
     bfname="$(basename "$brewfile")"
+    if [[ " ${omitted} " == *" ${bfname#Brewfile.} "* ]]; then
+      _skip "$bfname (omitted by profile $profile)"
+      continue
+    fi
     if out="$(brew bundle check --verbose --file="$brewfile" 2>&1)"; then
       _ok "$bfname"
     else
