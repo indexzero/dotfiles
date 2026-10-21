@@ -57,7 +57,7 @@ cmd_run() {
   [[ -d "$share" ]] || die "DOTFILES_HOME='$DOTFILES_HOME' is not a directory (resolved: $share)"
   print -r -- "sharing $share -> /Volumes/My Shared Files/dotfiles (ro)"
   # The window stays open on purpose: cask and CLT dialogs land there.
-  tart run "$1" --dir="dotfiles:$share:ro"
+  tart run "$1" --dir="dotfiles:${share}:ro"
 }
 
 cmd_ssh() {
