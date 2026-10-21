@@ -82,7 +82,7 @@ cmd_adduser() {
   local name="$1" user="${2:-cjr}" saved="$USER_"
   USER_=admin
   cmd_ssh "$name" \
-    "sudo sysadminctl -addUser '$user' -fullName '$user' -password admin -admin && \
+    "sudo sysadminctl -addUser '$user' -fullName '$user' -shell /bin/zsh -password admin -admin && \
      sudo dseditgroup -o edit -a '$user' -t user com.apple.access_ssh 2>/dev/null; \
      id '$user'"
   USER_="$saved"
