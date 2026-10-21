@@ -2,7 +2,8 @@
 
 brew "mysql"
 # homebrew-core ships only versioned postgresql formulae; bump deliberately
-brew "postgresql@18"
+# keg-only, so link: true keeps psql on PATH; the unversioned formula used to
+brew "postgresql@18", link: true
 
 # MongoDB
 # tap "mongodb/brew"

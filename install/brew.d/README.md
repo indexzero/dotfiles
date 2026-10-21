@@ -13,8 +13,9 @@ Sets are cut by concern, and three of them by layer:
 | cli | everything else | a shell |
 
 Plus `Brewfile.desktop` for GUI applications with no relationship to the
-shell. `terminal` and `desktop` are the headed sets; a machine without a
-display omits them. `profiles` maps a profile name to the sets it omits.
+shell. `terminal` and `desktop` are the headed sets. `profiles` maps a
+profile name to the sets it omits: `headless` omits those two and
+`databases`, which a VM has no use for either.
 
 - `Brewfile` - Main file that includes all others
 - `Brewfile.shell` - Prompt, runtime manager, multiplexer (starship, mise, tmux)
