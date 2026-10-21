@@ -1,7 +1,8 @@
 # Databases
 
 brew "mysql"
-brew "postgresql"
+# homebrew-core ships only versioned postgresql formulae; bump deliberately
+brew "postgresql@18"
 
 # MongoDB
 # tap "mongodb/brew"

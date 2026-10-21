@@ -2,7 +2,8 @@
 
 brew "tree"
 brew "bat"
-brew "exa"
+# eza: the maintained fork; exa is unmaintained and no longer in homebrew-core
+brew "eza"
 brew "fd"
 brew "fzf"
 brew "coreutils"

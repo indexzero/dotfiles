@@ -2,4 +2,3 @@
 
 tap "xwmx/taps"
 brew "xwmx/taps/nb"
-brew "cointop"

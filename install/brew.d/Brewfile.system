@@ -2,8 +2,10 @@
 
 brew "fastfetch"
 brew "mole"
-tap "cirruslabs/cli"
-brew "cirruslabs/cli/tart"
+# tart: VMs on Apple Silicon (see build/tart). Moved from cirruslabs/cli,
+# whose formula no longer loads on Homebrew 7 (cirruslabs/homebrew-cli#22).
+tap "openai/tools"
+brew "openai/tools/tart"
 # Parallel S3 and local filesystem execution tool
 brew "s5cmd"
 # Rsync for cloud storage
