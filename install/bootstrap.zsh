@@ -276,6 +276,7 @@ bootstrap_main() {
     fi
     print
     hdr "Done. Next, by hand:"
+    note "exec zsh -l   # this shell predates the links; the commands below need the new PATH"
     note "open a new terminal: zim builds its modules on the first .zshrc"
     note "restore the gitignored private files: dotfiles/.private, dotfiles/.ssh, .gitconfig-git*"
     note "git config --show-origin --get user.email   # confirm the identity include"
