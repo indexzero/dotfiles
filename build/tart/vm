@@ -8,6 +8,10 @@
 #   vm new <name>             clone pristine -> <name>
 #   vm run <name>             boot <name> with the dotfiles checkout shared read-only
 #   vm ssh <name> [cmd...]    ssh $TART_USER@<name> (default admin, password: admin)
+#   vm scp <name> <from> [to] copy a file out of the guest as $TART_USER.
+#                             <from> is a guest path (~ allowed); [to] defaults
+#                             to the current directory. For a file into the
+#                             guest, swap: vm scp <name> --to <local> <guest>
 #   vm grow <name>            boot <name> into Recovery to grow its APFS container
 #                             to the full disk. Do this once, on pristine; every
 #                             clone then starts with the big volume. Prints the
@@ -106,6 +110,21 @@ STEPS
 # The vanilla image has one account, admin/admin. home.nix pins
 # home.username = "cjr" and /Users/cjr, so the nix step only activates for a
 # user of that name. Create it once per VM, then run the bootstrap as it.
+cmd_scp() {
+  need "${1:-}"
+  local name="$1"; shift
+  local ip
+  ip="$(tart ip "$name")" || die "no IP yet for $name; is it running?"
+  local opts=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
+  if [[ "${1:-}" == --to ]]; then
+    shift; [[ -n "${1:-}" && -n "${2:-}" ]] || die "usage: vm scp <name> --to <local> <guest>"
+    scp "${opts[@]}" "$1" "${USER_}@${ip}:$2"
+  else
+    [[ -n "${1:-}" ]] || die "usage: vm scp <name> <guest-path> [local-path]"
+    scp "${opts[@]}" "${USER_}@${ip}:$1" "${2:-.}"
+  fi
+}
+
 cmd_adduser() {
   need "${1:-}"
   local name="$1" user="${2:-cjr}" saved="$USER_"
@@ -130,6 +149,6 @@ cmd_rm() {
 }
 
 case "${1:-}" in
-  tags|pristine|new|run|ssh|grow|adduser|reset|rm) c="$1"; shift; "cmd_$c" "$@" ;;
-  *) sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+  tags|pristine|new|run|ssh|scp|grow|adduser|reset|rm) c="$1"; shift; "cmd_$c" "$@" ;;
+  *) sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
 esac
