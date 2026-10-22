@@ -2,7 +2,6 @@
 
 brew "gcc"
 brew "cmake"
-brew "mise"   # replaces pyenv + volta + homebrew go — run install/mise after brew bundle
 brew "pipx"
 brew "zig"
 brew "ripgrep"
@@ -10,8 +9,4 @@ brew "ast-grep"
 brew "diff-so-fancy"
 brew "gitlogue"
 brew "mkcert"
-# Ghostty-based terminal with vertical tabs and notifications for AI coding agents
-cask "cmux"
-tap "drolosoft/tap"
-brew "drolosoft/tap/cmux-resurrect"
 brew "c2patool"

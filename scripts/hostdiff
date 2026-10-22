@@ -242,7 +242,12 @@ check_symlinks() {
     fi
   }
 
-  _check_link "ghostty"   "$DOTFILES/settings/ghostty"              "$HOME/Library/Application Support/com.mitchellh.ghostty"
+  # ghostty is a terminal: a headless profile never links its settings.
+  if [[ "$(tr -d '[:space:]' < "${XDG_CONFIG_HOME:-$HOME/Library/Application Support}/dotfiles/profile" 2>/dev/null)" == headless ]]; then
+    _skip "ghostty (omitted by profile headless)"
+  else
+    _check_link "ghostty"   "$DOTFILES/settings/ghostty"              "$HOME/Library/Application Support/com.mitchellh.ghostty"
+  fi
   _check_link "mise"      "$DOTFILES/settings/mise"                 "$HOME/Library/Application Support/mise"
   _check_link "starship"  "$DOTFILES/settings/starship"             "$HOME/Library/Application Support/starship"
   _check_link "worktrunk" "$DOTFILES/settings/worktrunk/config.toml" "${XDG_CONFIG_HOME:-$HOME/.config}/worktrunk/config.toml" "install/worktrunk"
@@ -260,9 +265,22 @@ check_brew() {
   local brewfile_dir="$DOTFILES/install/brew.d"
   local any_diff=0
 
+  # Sets the machine profile omits (install/bootstrap.zsh records the profile;
+  # brew.d/profiles maps it). Those are not drift on this machine.
+  local profile_file="${XDG_CONFIG_HOME:-$HOME/Library/Application Support}/dotfiles/profile"
+  local profile="" omitted=""
+  if [[ -f "$profile_file" ]]; then
+    profile="$(tr -d '[:space:]' < "$profile_file")"
+    omitted="$(awk -v p="$profile" '$1 == p { $1 = ""; print }' "$brewfile_dir/profiles")"
+  fi
+
   for brewfile in "$brewfile_dir"/Brewfile.*; do
     local bfname out
     bfname="$(basename "$brewfile")"
+    if [[ " ${omitted} " == *" ${bfname#Brewfile.} "* ]]; then
+      _skip "$bfname (omitted by profile $profile)"
+      continue
+    fi
     if out="$(brew bundle check --verbose --file="$brewfile" 2>&1)"; then
       _ok "$bfname"
     else

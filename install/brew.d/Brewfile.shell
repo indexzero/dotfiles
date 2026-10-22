@@ -1,0 +1,10 @@
+# The shell layer: what configures or extends the process that runs commands.
+# Needed everywhere, headless included. Terminals are Brewfile.terminal;
+# programs a shell runs are Brewfile.cli.
+
+# Prompt
+brew "starship"
+# Runtime manager; rewrites PATH per directory — run install/mise after brew bundle
+brew "mise"
+# Hosts shells; needs a pty, not a display
+brew "tmux"

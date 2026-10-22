@@ -6,6 +6,8 @@ export XDG_CACHE_HOME="${XDG_CACHE_HOME:-$HOME/Library/Caches}"
 export XDG_DATA_HOME="${XDG_DATA_HOME:-$HOME/Library/Application Support}"
 export XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/Library/Application Support}"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-${TMPDIR}$(id -u)/.run}"
+# uv would otherwise put tool executables in $XDG_DATA_HOME/../bin (~/Library/bin)
+export UV_TOOL_BIN_DIR="${UV_TOOL_BIN_DIR:-$HOME/.local/bin}"
 export MISE_DATA_DIR="${MISE_DATA_DIR:-$HOME/.local/share/mise}"
 export MISE_STATE_DIR="${MISE_STATE_DIR:-$HOME/.local/state/mise}"
 

@@ -1,66 +1,58 @@
 #!/usr/bin/env zsh
 
-# Install uv first (uses curl which handles SSL properly)
-if ! command -v uv &>/dev/null; then
+# python — uv and the global Python tools it manages.
+#
+# Python itself comes from mise (settings/mise/config.toml); pyenv was retired
+# in 2026.05.03. uv installs to ~/.local/bin on purpose: its installer would
+# otherwise follow XDG_DATA_HOME to ~/Library/bin, which is on no PATH, and it
+# must not edit ~/.zshrc, which is a symlink into the installed clone.
+
+set -e
+
+UPGRADE=""
+case "${1:-}" in
+  --upgrade|-u) UPGRADE=1 ;;
+  --help|-h)
+    echo "Usage: $0 [--upgrade]"
+    echo "  --upgrade, -u   Reinstall tools that are already present (pulls latest)"
+    exit 0 ;;
+esac
+
+export PATH="$HOME/.local/bin:$PATH"
+# uv puts tool executables under XDG_DATA_HOME/../bin, which is ~/Library/bin
+# here and on no PATH. Pin them next to uv itself. .exports sets the same for
+# interactive `uv tool install`.
+export UV_TOOL_BIN_DIR="$HOME/.local/bin"
+
+if ! command -v uv >/dev/null 2>&1; then
   echo "Installing uv..."
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  # Source the env file to get uv in PATH
-  [[ -f "$HOME/.local/bin/env" ]] && source "$HOME/.local/bin/env"
-  [[ -f "$HOME/Library/bin/env" ]] && source "$HOME/Library/bin/env"
+  curl -LsSf https://astral.sh/uv/install.sh \
+    | UV_INSTALL_DIR="$HOME/.local/bin" UV_NO_MODIFY_PATH=1 sh
 fi
+echo "uv: $(uv --version)"
 
-# Ensure uv is in PATH for this session
-export PATH="$HOME/.local/bin:$HOME/Library/bin:$PATH"
+# Global Python tools, one isolated environment each. Present tools are
+# skipped unless --upgrade, like install/npm, install/go and install/cargo.
+#
+# They run on their own Python, one minor behind latest, not on mise's
+# `python = "latest"`. A new minor ships before the ecosystem has wheels
+# for it, and uv then falls back to source builds that need compilers,
+# Fortran, or BLAS. uv downloads this version itself. Bump deliberately,
+# after the tools below install cleanly on it with no "Building" lines.
+UV_TOOL_PYTHON="3.14"
 
-echo "uv installed: $(uv --version)"
+UV_TOOLS=(
+  poetry
+  pipreqs      # pipreqs ./  — minimal requirements.txt for the project
+  pipdeptree   # pipdeptree --warn silence > dependency_tree.txt
+)
 
-# Install pyenv via brew
-# Note: Shell config is managed in dotfiles/.exports
-if ! brew list pyenv &>/dev/null; then
-  echo "Installing pyenv..."
-  brew install pyenv
-else
-  echo "pyenv already installed: $(pyenv --version)"
-fi
-
-# Install global Python tools via uv (includes poetry)
-echo "Installing/updating Python tools via uv..."
-uv tool install --upgrade poetry
-uv tool install --upgrade pipreqs
-uv tool install --upgrade pipdeptree
-uv tool install --upgrade aider-chat
-
-# Usage notes for installed tools:
-# pipreqs ./  # Generates a minimal requirements.txt for the project
-# pipdeptree --warn silence > dependency_tree.txt
-#
-# # Change directory into a git repo
-# cd /to/your/git/repo
-#
-# # Work with Claude 3.5 Sonnet on your repo
-# export ANTHROPIC_API_KEY=your-key-goes-here
-# aider
-#
-# # Work with GPT-4o on your repo
-# export OPENAI_API_KEY=your-key-goes-here
-# aider
-
-# Install Anaconda
-# https://www.anaconda.com/download/
-#
-# Install Kivy
-# https://kivy.org/doc/stable/installation/installation-osx.html#using-homebrew-with-pip
-#
-# brew install pkg-config
-# xcode-select --install
-#
-# Use pip?
-# python -m pip install "kivy[base]"
-# brew install glpk
-#
-# Use miniconda3?
-#
-# mkdir -p ~/miniconda3
-# curl https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh -o ~/miniconda3/miniconda.sh
-# bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
-# rm ~/miniconda3/miniconda.sh
+INSTALLED="$(uv tool list 2>/dev/null | awk 'NF && $1 !~ /^-/ {print $1}')"
+for tool in "${UV_TOOLS[@]}"; do
+  if [[ -z "$UPGRADE" && $'\n'"$INSTALLED"$'\n' == *$'\n'"$tool"$'\n'* ]]; then
+    echo "  uv -> $tool (present)"
+    continue
+  fi
+  echo "  uv -> $tool (python $UV_TOOL_PYTHON)"
+  uv tool install --upgrade --python "$UV_TOOL_PYTHON" "$tool"
+done

@@ -1,0 +1,12 @@
+# Terminal emulators and what only a terminal renders.
+# Headed: a machine without a display (a VM, a server) omits this set.
+# The shell layer (prompt, runtime manager) is Brewfile.shell.
+
+cask "warp"
+cask "ghostty"
+# Ghostty-based terminal with vertical tabs and notifications for AI coding agents
+cask "cmux"
+tap "drolosoft/tap"
+brew "drolosoft/tap/cmux-resurrect"
+# Rendered by the terminal, not the shell
+cask "font-meslo-lg-nerd-font"

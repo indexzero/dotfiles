@@ -4,18 +4,34 @@ Organized Homebrew packages by concern for selective installation.
 
 ## Structure
 
+Sets are cut by concern, and three of them by layer:
+
+| Layer | Set | Needs |
+|---|---|---|
+| terminal | `Brewfile.terminal` | a display: emulators (warp, ghostty, cmux) and the font they render |
+| shell | `Brewfile.shell` | a pty: starship, mise, tmux |
+| cli | everything else | a shell |
+
+Plus `Brewfile.desktop` for GUI applications with no relationship to the
+shell. `terminal` and `desktop` are the headed sets. `profiles` maps a
+profile name to the sets it omits: `headless` omits those two and
+`databases`, which a VM has no use for either.
+
 - `Brewfile` - Main file that includes all others
-- `Brewfile.dev` - Development tools (gcc, cmake, pyenv, etc.)
+- `Brewfile.shell` - Prompt, runtime manager, multiplexer (starship, mise, tmux)
+- `Brewfile.dev` - Development tools (gcc, cmake, ripgrep)
 - `Brewfile.vcs` - Version control (gh, git-lfs, graphite)
 - `Brewfile.cli` - CLI utilities (bat, exa, fzf, etc.)
 - `Brewfile.docs` - Documentation & visualization (LaTeX, diagrams)
-- `Brewfile.databases` - Database systems (mysql, postgresql, mongodb)
+- `Brewfile.databases` - Database systems (mysql, postgresql)
 - `Brewfile.media` - Media processing (imagemagick, ffmpeg)
-- `Brewfile.system` - System utilities (fastfetch, eul, pearcleaner)
+- `Brewfile.system` - System utilities (fastfetch, tart, rclone)
 - `Brewfile.network` - Network & security tools (mitmproxy)
 - `Brewfile.devops` - Cloud & DevOps CLIs (fastly)
-- `Brewfile.productivity` - Productivity apps (espanso, nb, cointop)
-- `Brewfile.terminals` - Terminal emulators (warp, ghostty)
+- `Brewfile.llms` - LLM tooling (icm, mq, deja-vu)
+- `Brewfile.productivity` - Productivity CLIs (nb, cointop)
+- `Brewfile.terminal` - Terminal emulators and font (warp, ghostty, cmux) — headed
+- `Brewfile.desktop` - Desktop applications (codex, inkscape, betterdisplay) — headed
 
 ## Usage
 

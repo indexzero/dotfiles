@@ -1,0 +1,11 @@
+# Desktop applications: GUI programs with no relationship to the shell.
+# Headed: a machine without a display omits this set.
+
+cask "only-switch"
+cask "pearcleaner"
+cask "betterdisplay"
+cask "eul"
+cask "codex"
+cask "tolaria"
+# Vector editing — node-level SVG editor; potrace front-end via Trace Bitmap
+cask "inkscape"

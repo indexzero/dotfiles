@@ -2,24 +2,22 @@
 
 brew "tree"
 brew "bat"
-brew "exa"
+# eza: the maintained fork; exa is unmaintained and no longer in homebrew-core
+brew "eza"
 brew "fd"
 brew "fzf"
 brew "coreutils"
 brew "duf"
 brew "dust"
 brew "ccat"
-brew "xsv"
+# xan: the maintained fork; xsv was disabled by Homebrew on 2026-04-27 (archived upstream)
+brew "xan"
 brew "mdq"
 brew "jq"
 brew "yq"
 brew "jnv"
 brew "nono"
-brew "tmux"
 brew "gum"
-brew "glow"
-brew "starship"
-cask "font-meslo-lg-nerd-font"
 # CLI for Drive, Gmail, Calendar, Sheets, Docs, Chat, Admin, and more
 brew "googleworkspace-cli"
 # Command-line tool for sharing terminal over the web

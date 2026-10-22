@@ -9,7 +9,10 @@ brew "latexindent"
 brew "d2"
 brew "graphviz"
 brew "vhs"
-tap "charmbracelet/tap"
+# No tap line on purpose: `brew tap charmbracelet/tap` fails Homebrew's
+# tap-wide syntax check (tone.rb is empty upstream, 2026-10-21), while
+# `brew install` auto-taps without that check. install/brew still trusts the
+# tap from the qualified name below. brewwr would add the line back; don't.
 brew "charmbracelet/tap/freeze"
 
 # PDF tools

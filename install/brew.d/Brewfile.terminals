@@ -1,4 +1,0 @@
-# Terminal Emulators
-
-cask "warp"
-cask "ghostty"
