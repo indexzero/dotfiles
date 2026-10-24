@@ -96,6 +96,19 @@ bootstrap_main() {
     if [[ -r "$daemon" ]]; then set +u; source "$daemon"; set -u; fi
   }
 
+  # ── sudo ────────────────────────────────────────────────────────────────────
+  # Several steps need root: softwareupdate, `git lfs install --system`, the
+  # Nix installer. The Homebrew installer in non-interactive mode only checks
+  # `sudo -n`, which passes only while a timestamp is already valid; on a
+  # machine where the CLT step had nothing to do, it aborted with
+  # "Insufficient permissions". Ask once, up front, and keep the timestamp
+  # alive until this process exits.
+  sudo_once() {
+    say "sudo is needed for the Command Line Tools, git-lfs and Nix; asking once."
+    sudo -v || die "sudo is required"
+    ( while kill -0 "$$" 2>/dev/null; do sudo -n true 2>/dev/null; sleep 60; done ) &
+  }
+
   # ── steps ───────────────────────────────────────────────────────────────────
   step_preflight() {
     [[ "$(uname -s)" == Darwin ]] || die "macOS only"
@@ -298,6 +311,7 @@ bootstrap_main() {
     (( ${STEPS[(I)$s]} )) || die "'$s' is not a step. Steps: ${STEPS[*]}. Brew sets are chosen by BOOTSTRAP_PROFILE."
   done
   activate_present
+  sudo_once
   for s in $STEPS; do
     # (I) yields an index, 0 when absent; (r) yields an empty match, which
     # set -u reports as an unset parameter.
