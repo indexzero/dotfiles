@@ -1,0 +1,89 @@
+#!/usr/bin/env zsh
+#
+# snapshot - capture macOS preferences so a change made in System Settings can
+# be read back as the `defaults write` that produces it.
+#
+# Usage:
+#   snapshot take [label]        dump every domain to build/defaults/snapshots/<time>-<label>/
+#   snapshot diff <a> <b>        keys that differ between two snapshots
+#   snapshot last                diff the two most recent snapshots
+#   snapshot domain <a> <b> <d>  full diff of one domain between two snapshots
+#
+# Method: `snapshot take before`, change ONE thing in System Settings,
+# `snapshot take after`, `snapshot last`. The diff names the domain, key and
+# value Apple uses. Write that into install/macos as `defaults write`.
+#
+# Nothing here writes a preference. Snapshots are gitignored.
+
+set -euo pipefail
+
+ROOT="${0:A:h}/snapshots"
+
+die() { print -u2 -r -- "snapshot: $*"; exit 1; }
+
+cmd_take() {
+  local label="${1:-}" dir
+  dir="$ROOT/$(date +%Y%m%d-%H%M%S)${label:+-$label}"
+  mkdir -p "$dir"
+  # Three views. The user dump holds most things. -currentHost holds per-machine
+  # keys (trackpad, mouse, some display). NSGlobalDomain is inside the user dump
+  # but is where the keyboard and scrolling live, so keep a copy on its own.
+  defaults read                         > "$dir/user.txt"        2>/dev/null || true
+  defaults -currentHost read            > "$dir/currentHost.txt" 2>/dev/null || true
+  defaults read NSGlobalDomain          > "$dir/NSGlobalDomain.txt" 2>/dev/null || true
+  defaults domains | tr ',' '\n' | sed 's/^ *//' | sort > "$dir/domains.txt"
+  # Settings that are not preferences at all.
+  {
+    echo "## scutil";       scutil --get HostName 2>/dev/null; scutil --get LocalHostName; scutil --get ComputerName
+    echo "## pmset";        pmset -g custom 2>/dev/null
+    echo "## systemsetup";  systemsetup -gettimezone -getremotelogin -getcomputersleep -getdisplaysleep 2>/dev/null
+  } > "$dir/non-defaults.txt" 2>/dev/null || true
+  print -r -- "$dir"
+}
+
+# Normalise a dump into "domain<TAB>key = value" lines so diffs are stable and
+# name the domain. `defaults read` prints one big dict keyed by domain; this is
+# a line-oriented approximation good enough to locate a key.
+_flatten() {
+  awk '
+    /^    "?[^" ]+"? = *\{$/   { d=$1; gsub(/[";]/,"",d); depth=1; next }
+    depth==1 && /^    \};?$/   { d=""; depth=0; next }
+    depth>=1 && /\{$/          { depth++; }
+    depth>=2 && /\};?$/        { depth--; }
+    d!="" && depth==1 && /=/   { line=$0; sub(/^ +/,"",line); print d "\t" line }
+  ' "$1"
+}
+
+cmd_diff() {
+  local a="$1" b="$2" f
+  [[ -d "$a" && -d "$b" ]] || die "need two snapshot directories"
+  for f in user currentHost; do
+    echo "== $f"
+    diff <(_flatten "$a/$f.txt" | sort) <(_flatten "$b/$f.txt" | sort) \
+      | grep -E '^[<>]' | sed 's/^</-/; s/^>/+/' || true
+  done
+  echo "== NSGlobalDomain"
+  diff "$a/NSGlobalDomain.txt" "$b/NSGlobalDomain.txt" | grep -E '^[<>]' | sed 's/^</-/; s/^>/+/' || true
+  echo "== non-defaults"
+  diff "$a/non-defaults.txt" "$b/non-defaults.txt" | grep -E '^[<>]' | sed 's/^</-/; s/^>/+/' || true
+}
+
+cmd_last() {
+  local -a snaps
+  snaps=("$ROOT"/*(/N/om))
+  (( ${#snaps} >= 2 )) || die "need two snapshots; have ${#snaps}"
+  print -r -- "-- ${snaps[2]:t}"; print -r -- "++ ${snaps[1]:t}"
+  cmd_diff "${snaps[2]}" "${snaps[1]}"
+}
+
+cmd_domain() {
+  local a="$1" b="$2" d="$3"
+  diff <(defaults read "$d" 2>/dev/null) /dev/null >/dev/null 2>&1 || true
+  diff <(grep -A99999 "^    \"\\?$d\"\\? = *{" "$a/user.txt" | awk 'NR==1||!/^    \}/{print} /^    \}/{exit}') \
+       <(grep -A99999 "^    \"\\?$d\"\\? = *{" "$b/user.txt" | awk 'NR==1||!/^    \}/{print} /^    \}/{exit}') || true
+}
+
+case "${1:-}" in
+  take|diff|last|domain) c="$1"; shift; "cmd_$c" "$@" ;;
+  *) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac
