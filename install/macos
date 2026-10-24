@@ -1,3 +1,96 @@
 #!/usr/bin/env zsh
+#
+# macos — the System Settings this machine carries, as `defaults write`.
+#
+# Every key below came out of build/defaults/snapshot: a fresh MacBook diffed
+# against this one on 2026-10-24. Values are what this Mac has, not opinions.
+# Re-running is safe. Dock, Finder, menu bar and Control Center restart at the
+# end; keyboard and scrolling keys apply at the next login.
+#
+# Usage: install/macos                 apply
+#        MAC_NAME=foo install/macos    also set the hostnames (sudo)
 
-defaults write com.apple.screencapture location "$HOME/Screenshots"
+set -e
+
+# ── Scrolling, keyboard, text ─────────────────────────────────────────────────
+defaults write NSGlobalDomain com.apple.swipescrolldirection -bool false   # scroll direction: not "natural"
+defaults write NSGlobalDomain AppleKeyboardUIMode -int 2                   # keyboard navigation: tab moves between all controls
+defaults write NSGlobalDomain AppleSpacesSwitchOnActivate -bool false      # activating an app does not switch to its Space
+defaults write NSGlobalDomain CGDisableCursorLocationMagnification -bool true  # no shake-to-find cursor
+defaults write NSGlobalDomain NSNavPanelFileListModeForOpenMode2 -int 2    # open and save panels in list view
+defaults write NSGlobalDomain NSNavPanelFileListModeForSaveMode2 -int 2
+defaults write NSGlobalDomain AppleIconAppearanceTheme -string RegularDark # dark app icons
+
+# Text replacement: /cjr -> </Charlie>. An array of dicts, so add only once.
+if ! defaults read NSGlobalDomain NSUserDictionaryReplacementItems 2>/dev/null | grep -q '"/cjr"'; then
+  defaults write NSGlobalDomain NSUserDictionaryReplacementItems -array-add \
+    '{ on = 1; replace = "/cjr"; with = "</Charlie>"; }'
+fi
+
+# ── Trackpad ──────────────────────────────────────────────────────────────────
+# Tap to click. Two domains: the trackpad driver, and the per-host copy.
+defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
+defaults -currentHost write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+
+# ── Dock ──────────────────────────────────────────────────────────────────────
+defaults write com.apple.dock autohide -bool true
+defaults write com.apple.dock orientation -string right
+defaults write com.apple.dock tilesize -int 33
+defaults write com.apple.dock magnification -bool true
+defaults write com.apple.dock largesize -int 62
+defaults write com.apple.dock mineffect -string genie
+defaults write com.apple.dock show-recents -bool false
+defaults write com.apple.dock minimize-to-application -bool false
+# Hot corners: both bottom corners show the desktop (4). Fresh macOS puts
+# Quick Note (14) bottom-right.
+defaults write com.apple.dock wvous-bl-corner -int 4
+defaults write com.apple.dock wvous-bl-modifier -int 0
+defaults write com.apple.dock wvous-br-corner -int 4
+defaults write com.apple.dock wvous-br-modifier -int 0
+
+# ── Windows, Stage Manager, desktop ───────────────────────────────────────────
+defaults write com.apple.WindowManager GloballyEnabled -bool false            # Stage Manager off
+defaults write com.apple.WindowManager EnableTilingByEdgeDrag -bool false     # no tiling when dragging to an edge
+defaults write com.apple.WindowManager EnableTopTilingByEdgeDrag -bool false
+defaults write com.apple.WindowManager EnableTilingOptionAccelerator -bool false
+defaults write com.apple.WindowManager HideDesktop -bool true                 # as recorded on this Mac
+
+# ── Finder ────────────────────────────────────────────────────────────────────
+defaults write com.apple.finder AppleShowAllFiles -bool true                  # show hidden files
+
+# ── Menu bar and Control Center ───────────────────────────────────────────────
+defaults write com.apple.menuextra.clock IsAnalog -bool true
+defaults write com.apple.menuextra.clock ShowDayOfWeek -bool false
+defaults -currentHost write com.apple.Spotlight MenuItemHidden -int 1        # no Spotlight icon in the menu bar
+# Control Center module visibility, values as recorded (18 = show in menu bar).
+defaults -currentHost write com.apple.controlcenter Bluetooth -int 18
+defaults -currentHost write com.apple.controlcenter Battery -int 2
+defaults -currentHost write com.apple.controlcenter Sound -int 8
+
+# ── Screenshots ───────────────────────────────────────────────────────────────
+mkdir -p "$HOME/Screenshots"
+defaults write com.apple.screencapture location -string "$HOME/Screenshots"
+defaults write com.apple.screencapture location-screenshot -string "$HOME/Screenshots"
+defaults write com.apple.screencapture location-screenrecording -string "$HOME/Screenshots"
+defaults write com.apple.screencapture type -string png
+defaults write com.apple.screencapture show-thumbnail -bool true
+defaults write com.apple.screencapture showsClicks -bool true                 # recordings show mouse clicks
+
+# ── Login ─────────────────────────────────────────────────────────────────────
+defaults write com.apple.loginwindow TALLogoutSavesState -bool false          # do not reopen windows at login
+
+# ── Not preferences ───────────────────────────────────────────────────────────
+# Hostnames. This Mac is cjr0xMBP; a new machine wants its own, so only on request.
+if [[ -n "${MAC_NAME:-}" ]]; then
+  sudo scutil --set ComputerName  "$MAC_NAME"
+  sudo scutil --set HostName      "$MAC_NAME"
+  sudo scutil --set LocalHostName "$MAC_NAME"
+fi
+# Power, as the diff recorded it on this Mac: display sleeps at 120 min and
+# the machine never sleeps. The snapshot does not say which power source, so
+# verify with `pmset -g custom` before enabling.
+#   sudo pmset -c displaysleep 120 sleep 0
+
+# ── Apply ─────────────────────────────────────────────────────────────────────
+killall Dock Finder SystemUIServer ControlCenter 2>/dev/null || true
+echo "macos: applied. Keyboard and scrolling keys take effect at the next login."
