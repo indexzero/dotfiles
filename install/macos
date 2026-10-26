@@ -72,7 +72,8 @@ mkdir -p "$HOME/Screenshots"
 defaults write com.apple.screencapture location -string "$HOME/Screenshots"
 defaults write com.apple.screencapture location-screenshot -string "$HOME/Screenshots"
 defaults write com.apple.screencapture location-screenrecording -string "$HOME/Screenshots"
-defaults write com.apple.screencapture type -string png
+defaults write com.apple.screencapture type png
+defaults write com.apple.screencapture captureHDR -bool false                 # SDR screenshots; HDR ones look wrong everywhere else
 defaults write com.apple.screencapture show-thumbnail -bool true
 defaults write com.apple.screencapture showsClicks -bool true                 # recordings show mouse clicks
 
