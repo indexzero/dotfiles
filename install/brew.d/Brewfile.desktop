@@ -9,3 +9,13 @@ cask "codex"
 cask "tolaria"
 # Vector editing — node-level SVG editor; potrace front-end via Trace Bitmap
 cask "inkscape"
+
+# Daily apps. All self-update, so brew installs and does not upgrade them.
+# On a machine where they were installed by hand: brew install --cask --adopt
+cask "brave-browser"
+cask "google-chrome"
+cask "slack"
+cask "1password"
+cask "visual-studio-code"
+# Gates its download page behind a login; the cask bypasses that
+cask "wispr-flow"
