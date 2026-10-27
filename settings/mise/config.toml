@@ -4,7 +4,7 @@ experimental = true
 jobs = 4
 
 [tools]
-node = "lts"
+node = "latest"
 python = "latest"
 # Pinned to a minor: this is only the bootstrap Go. Per-project versions come
 # from `toolchain` lines in go.mod via GOTOOLCHAIN=auto, not from mise.
