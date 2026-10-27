@@ -10,3 +10,4 @@ brew "mq"
 tap "vshulcz/tap"
 # Persistent memory for your coding agents
 brew "vshulcz/tap/deja-vu"
+brew "herdr"
