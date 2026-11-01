@@ -10,6 +10,10 @@ brew "exiftool"
 brew "clamav"
 # PNG file optimizer
 brew "optipng"
+# Multithreaded lossless PNG optimizer (optipng successor)
+brew "oxipng"
+# Lossy PNG compressor via palette quantization (what tinypng.com uses)
+brew "pngquant"
 # Recompression utilities for .PNG, .MNG, .ZIP, and .GZ files
 brew "advancecomp"
 # PDF reader for terminal emulators using the Kitty image protocol
