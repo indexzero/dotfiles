@@ -58,6 +58,7 @@ The pieces, for running one at a time:
 | `./install/setup.sh` | Base system setup, runs `./install/dotfiles install` |
 | `./install/dotfiles` | Clone `main` and symlink dotfiles into `~` |
 | `./install/nix` | [Nix] seed via [devenv] machines, see `workstation/` |
+| `./install/checks` | Small fixes for things installed by hand; reports, then offers each |
 | `./install/brew` | [Homebrew] formulae and casks |
 | `./install/git` | [Git] configuration |
 | `./install/gh` | [GitHub CLI] extensions (stacked PRs, etc.) |
