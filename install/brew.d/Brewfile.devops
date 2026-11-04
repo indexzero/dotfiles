@@ -3,3 +3,4 @@ tap "fastly/tap"
 # A CLI for interacting with the Fastly platform
 brew "fastly/tap/fastly"
 brew "gmailctl"
+cask "1password-cli"
