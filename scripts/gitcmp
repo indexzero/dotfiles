@@ -1,0 +1,173 @@
+#!/bin/bash
+#
+# gitcmp - Prove two git refs hold the same content, and show the work
+#
+# Compares the tree objects of two refs. Same tree SHA means every path,
+# every byte, every file mode and every symlink target is identical. This is
+# the strongest check git has, and it is the one to run after a rewrite:
+# a branch split into a stack, a squash, a rebase, a filter-branch.
+#
+# Usage: gitcmp [OPTIONS] A B
+#
+# Options:
+#   --verbose     Show the sameness value of every entry: first the top-level
+#                 roll-up (a subtree hash per directory, a blob hash per file),
+#                 then every path, with = or != and the hash on each side.
+#   --explain     List each differing path with both modes and blob hashes
+#                 (git diff-tree -r --no-renames). Printed on its own whenever
+#                 the trees differ.
+#   --commits     Show the commit story (git range-diff BASE..A BASE..B). It
+#                 pairs each commit of one series with the other and proves
+#                 nothing about the trees.
+#   --base REF    Base for --commits. Defaults to the merge base of A and B.
+#   -q, --quiet   Print nothing; exit code only.
+#   --help        Show this help message
+#
+# Exit codes: 0 equal trees, 1 different trees, 2 usage or git error.
+#
+# See ~/Git/indexzero/dotfiles/tools/gitcmp.md for what each command covers
+# and the checks that return "equal" on trees that are not.
+
+set -euo pipefail
+
+verbose=false
+explain=false
+commits=false
+quiet=false
+base=""
+refs=()
+
+usage() {
+  sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --verbose|-v) verbose=true ;;
+    --explain) explain=true ;;
+    --commits) commits=true ;;
+    --base)
+      [[ $# -ge 2 ]] || { echo "gitcmp: --base needs a ref" >&2; exit 2; }
+      base="$2"
+      shift
+      ;;
+    --base=*) base="${1#--base=}" ;;
+    -q|--quiet) quiet=true ;;
+    -h|--help) usage; exit 0 ;;
+    --) shift; refs+=("$@"); break ;;
+    -*) echo "gitcmp: unknown option $1" >&2; usage >&2; exit 2 ;;
+    *) refs+=("$1") ;;
+  esac
+  shift
+done
+
+if [[ ${#refs[@]} -ne 2 ]]; then
+  echo "gitcmp: two refs are required" >&2
+  usage >&2
+  exit 2
+fi
+
+a="${refs[0]}"
+b="${refs[1]}"
+
+# a commit, a tag, a tree hash, or <rev>:<path>, which names a subtree
+tree_of() {
+  local ref="$1" t
+  t="$(git rev-parse --verify --quiet "${ref}^{tree}" 2>/dev/null)" ||
+  t="$(git rev-parse --verify --quiet "$ref" 2>/dev/null)" || return 1
+  [[ "$(git cat-file -t "$t" 2>/dev/null)" == "tree" ]] || return 1
+  echo "$t"
+}
+
+ta="$(tree_of "$a")" || { echo "gitcmp: not a tree-ish: $a" >&2; exit 2; }
+tb="$(tree_of "$b")" || { echo "gitcmp: not a tree-ish: $b" >&2; exit 2; }
+
+# the commit each ref resolved to, so the reader knows what was compared
+describe() {
+  local ref="$1"
+  if git rev-parse --verify --quiet "${ref}^{commit}" >/dev/null 2>&1; then
+    git --no-pager log -1 --format='%h  %s' "$ref"
+  else
+    echo "(tree)"
+  fi
+}
+
+# the shape of a tree: entries, blobs, modes, symlinks, submodules
+shape() {
+  git ls-tree -r --format='%(objectmode) %(objecttype)' "$1" | awk '
+    { n++; if ($2 == "blob") blobs++; if ($1 == "120000") links++; if ($1 == "160000") subs++; modes[$1]++ }
+    END {
+      printf "%d paths, %d blobs", n, blobs
+      m = ""; for (k in modes) m = m (m == "" ? "" : ", ") "mode " k " x" modes[k]
+      printf ", %s", m
+      printf ", %d symlinks, %d submodules\n", links, subs
+    }'
+}
+
+# one line per entry: path, mark, left value, right value. depth 1 = roll-up, -r = every path
+listing() {
+  local ref="$1" recurse="$2"
+  git ls-tree $recurse --format='%(path)%x09%(objectmode)%x09%(objectname)' "$ref"
+}
+
+side_by_side() {
+  local recurse="$1"
+  join -t $'\t' -j 1 -a 1 -a 2 -e - -o '0,1.2,1.3,2.2,2.3' \
+    <(listing "$a" "$recurse" | sort -t $'\t' -k1,1) \
+    <(listing "$b" "$recurse" | sort -t $'\t' -k1,1) |
+  awk -F '\t' -v w="$pad" '
+    {
+      mark = ($2 == $4 && $3 == $5) ? "=" : "!="
+      l = ($3 == "-") ? "missing" : substr($3, 1, 12) " " $2
+      r = ($5 == "-") ? "missing" : substr($5, 1, 12) " " $4
+      printf "  %-*s  %-2s  %-20s  %-20s\n", w, $1, mark, l, r
+    }'
+}
+
+if $quiet; then
+  [[ "$ta" == "$tb" ]] && exit 0 || exit 1
+fi
+
+pad=$(( ${#a} > ${#b} ? ${#a} : ${#b} ))
+printf '%-*s  %s\n' "$pad" "$a" "$(describe "$a")"
+printf '%-*s  tree %s\n' "$pad" "" "$ta"
+printf '%-*s  %s\n' "$pad" "$b" "$(describe "$b")"
+printf '%-*s  tree %s\n' "$pad" "" "$tb"
+
+if $verbose; then
+  pad=$( { listing "$a" -r; listing "$b" -r; } | cut -f1 | awk '{ if (length($0) > m) m = length($0) } END { print m + 0 }' )
+  echo
+  echo "  roll-up: a subtree hash per directory, a blob hash per file"
+  side_by_side ""
+  echo
+  echo "  every path"
+  side_by_side -r
+  echo
+fi
+
+status=0
+if [[ "$ta" == "$tb" ]]; then
+  printf 'EQUAL       %s\n' "$(shape "$a")"
+  printf '            same paths, bytes, modes and symlink targets; not messages, authors or parents\n'
+else
+  status=1
+  printf 'DIFFERENT   %s   %s\n' "$a" "$(shape "$a")"
+  printf '            %s   %s\n' "$b" "$(shape "$b")"
+  explain=true
+fi
+
+if $explain && [[ $status -ne 0 ]]; then
+  echo
+  # plumbing: no pager, no textconv, no external diff, no rename guessing
+  git --no-pager diff-tree -r --no-renames "$a" "$b"
+fi
+
+if $commits; then
+  if [[ -z "$base" ]]; then
+    base="$(git merge-base "$a" "$b")" || { echo "gitcmp: no merge base for $a and $b; pass --base" >&2; exit 2; }
+  fi
+  echo
+  git --no-pager range-diff "${base}..${a}" "${base}..${b}"
+fi
+
+exit $status
