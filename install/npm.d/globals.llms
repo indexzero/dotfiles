@@ -2,3 +2,4 @@
 npm @builder.io/micro-agent
 npm githuman
 pnpm calldiff
+pnpm @modelcontextprotocol/server-sequential-thinking
