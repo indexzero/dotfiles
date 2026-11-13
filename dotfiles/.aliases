@@ -9,7 +9,6 @@ alias emptytrash="find $HOME/.Trash -not -path $HOME/.Trash -exec rm -rf {} \; 2
 
 # github
 alias ghcd=". ghi"
-alias cat="ccat"
 
 # git worktree navigation
 alias wtr=". wtr"
