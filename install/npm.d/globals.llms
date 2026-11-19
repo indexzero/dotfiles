@@ -2,3 +2,5 @@
 npm @builder.io/micro-agent
 npm githuman
 pnpm calldiff
+# claude mcp add sequential-thinking -- $(which mcp-server-sequential-thinking)
+pnpm @modelcontextprotocol/server-sequential-thinking

@@ -14,8 +14,9 @@ password `admin`, SSH on, no Homebrew, no Command Line Tools. That is the
 "from nothing" the script has to handle. `base` images ship Homebrew and the
 CLT preinstalled, which skips the two steps most likely to break.
 
-Pick the newest guest at or below the host's macOS. The guest never needs to
-match the host exactly. Tags come from the registry:
+For bootstrap testing, pick the newest guest at or below the host's macOS;
+an exact match is unnecessary. Preference comparisons benefit from matching
+the release and build. Tags come from the registry:
 
 ```zsh
 build/tart/vm tags            # lists ghcr.io/cirruslabs/macos-*-vanilla tags
@@ -152,5 +153,10 @@ Each cloned VM shares blocks with `pristine` until it writes, then grows.
 A full bootstrap run writes tens of GB. `tart list` shows sizes,
 `tart delete <name>` reclaims a VM, and `tart prune --entries caches` drops
 pulled images you no longer need.
+
+## Compare Raskin captures
+
+The preference preset, basic Raskin usage, and VM comparison workflow live
+in [build/macos](../macos/README.md#compare-raskin-captures-in-a-tart-vm).
 
 [tart]: https://tart.run

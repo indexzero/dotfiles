@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: gitign [--recursive|-r] [--exclude PATTERN]... [DIRECTORY]
+
+List ignored, untracked files in each Git repository immediately below
+DIRECTORY. With --recursive, find repositories at any depth.
+
+Exclude paths containing a component matching PATTERN. The option may be
+repeated. The default exclusion list contains node_modules.
+
+DIRECTORY defaults to the current directory.
+EOF
+}
+
+recursive=false
+exclude_patterns=(node_modules)
+arguments=()
+
+while (( $# > 0 )); do
+  case $1 in
+    -r|--recursive)
+      recursive=true
+      shift
+      ;;
+    --exclude)
+      if (( $# < 2 )); then
+        printf 'gitign: --exclude requires a pattern\n' >&2
+        exit 2
+      fi
+      exclude_patterns+=("$2")
+      shift 2
+      ;;
+    --exclude=*)
+      exclude_patterns+=("${1#*=}")
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      arguments+=("$@")
+      break
+      ;;
+    -*)
+      printf 'gitign: unknown option: %s\n' "$1" >&2
+      usage >&2
+      exit 2
+      ;;
+    *)
+      arguments+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if (( ${#arguments[@]} > 1 )); then
+  usage >&2
+  exit 2
+fi
+
+root=${arguments[0]:-.}
+
+if [[ ! -d $root ]]; then
+  printf 'gitign: not a directory: %s\n' "$root" >&2
+  exit 1
+fi
+
+is_excluded() {
+  local path=$1
+  local pattern
+
+  for pattern in "${exclude_patterns[@]}"; do
+    pattern=${pattern#/}
+    pattern=${pattern%/}
+    [[ -n $pattern ]] || continue
+
+    if [[ "/$path/" == *"/$pattern/"* ]]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+show_ignored() {
+  local repo=$1
+  local ignored_path
+
+  printf '\n%s:\n' "$repo"
+  git -C "$repo" ls-files -z --others --ignored --exclude-standard |
+    while IFS= read -r -d '' ignored_path; do
+      if ! is_excluded "$ignored_path"; then
+        printf '%s/%s\n' "${repo%/}" "$ignored_path"
+      fi
+    done
+}
+
+if [[ $recursive == true ]]; then
+  while IFS= read -r -d '' git_marker; do
+    show_ignored "${git_marker%/.git}"
+  done < <(
+    find "$root" -mindepth 2 \
+      \( -type d -name .git -print0 -prune \) -o \
+      \( -type f -name .git -print0 \)
+  )
+else
+  shopt -s dotglob nullglob
+  for repo in "$root"/*; do
+    [[ -d $repo ]] || continue
+    [[ -d $repo/.git || -f $repo/.git ]] || continue
+    show_ignored "$repo"
+  done
+fi

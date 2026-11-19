@@ -30,3 +30,4 @@ remove = true
 
 [list]
 summary = true
+json-schema = 2

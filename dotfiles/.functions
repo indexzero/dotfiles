@@ -121,6 +121,59 @@ function git-origin-all-branches() {
   git pull --all
 }
 
+#
+# _png_savings (src dst)
+# Prints the size change from src to dst
+#
+function _png_savings() {
+  local before after
+  before=$(wc -c < "$1" | tr -d ' ')
+  after=$(wc -c < "$2" | tr -d ' ')
+  echo "$2: $before -> $after bytes ($(( (before - after) * 100 / before ))% smaller)"
+}
+
+#
+# tinypng (file.png...)
+# Lossy compression like tinypng.com: pngquant reduces each PNG to a
+# 256-colour palette, then oxipng recompresses it. Writes <name>-tiny.png.
+#
+function tinypng() {
+  [ $# -eq 0 ] && { echo "usage: tinypng <file.png>..." >&2; return 1; }
+  command -v pngquant > /dev/null || { echo "tinypng: pngquant not found (brew install pngquant)" >&2; return 1; }
+  command -v oxipng > /dev/null || { echo "tinypng: oxipng not found (brew install oxipng)" >&2; return 1; }
+
+  local src dst code
+  for src in "$@"; do
+    [ -f "$src" ] || { echo "tinypng: $src: no such file" >&2; continue; }
+    dst="${src%.[pP][nN][gG]}-tiny.png"
+    pngquant --quality=65-85 --skip-if-larger --strip --force --output "$dst" -- "$src"
+    code=$?
+    case $code in
+      0) oxipng -o max --strip safe -q "$dst" && _png_savings "$src" "$dst" ;;
+      98) echo "tinypng: $src: skipped, already smaller than pngquant can make it" >&2 ;;
+      99) echo "tinypng: $src: skipped, too many colours to reach quality 65" >&2 ;;
+      *) echo "tinypng: $src: pngquant failed (exit $code)" >&2 ;;
+    esac
+  done
+}
+
+#
+# tinypngll (file.png...)
+# Lossless compression: oxipng recompresses each PNG without changing a
+# pixel, and keeps colour profiles. Writes <name>-tinyll.png.
+#
+function tinypngll() {
+  [ $# -eq 0 ] && { echo "usage: tinypngll <file.png>..." >&2; return 1; }
+  command -v oxipng > /dev/null || { echo "tinypngll: oxipng not found (brew install oxipng)" >&2; return 1; }
+
+  local src dst
+  for src in "$@"; do
+    [ -f "$src" ] || { echo "tinypngll: $src: no such file" >&2; continue; }
+    dst="${src%.[pP][nN][gG]}-tinyll.png"
+    oxipng -o max --strip safe -q --out "$dst" -- "$src" && _png_savings "$src" "$dst"
+  done
+}
+
 # Source all function files from ~/.fns
 if [ -d "$HOME/.fns" ]; then
   for fn_file in "$HOME/.fns"/*; do

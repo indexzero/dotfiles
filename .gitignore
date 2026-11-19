@@ -16,3 +16,6 @@ audio-scan*/*
 
 # Bootstrap run logs copied out of a VM for review
 bootstrap*.log
+
+# Personal notes kept next to the repo, never in it (any depth)
+*.NOTES.md

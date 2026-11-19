@@ -192,7 +192,7 @@ _ingest_patch() {
 
 cmd_ingest() {
   local apply="${1:-}" patch
-  patch="$(mktemp -t hostdiff-ingest)"
+  patch="$(mktemp "${TMPDIR:-/tmp}/hostdiff-ingest.XXXXXX")"
   _ingest_patch > "$patch"
 
   if [[ ! -s "$patch" ]]; then

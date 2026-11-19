@@ -1,0 +1,169 @@
+// indexzero's personal capture selection. Keys only; values come from this Mac.
+// Start with dotfiles/install/macos, the G915 notes, and Terminal profiles.
+// Choices reviewed with indexzero on 2026-11-17; "Inferred" records their origin.
+// A VM difference or missing VM key alone does not prove a deliberate change.
+// Selecting a collection captures its entire stored value.
+raskin-preset 1
+
+defaults {
+    NSGlobalDomain {
+        // Explicit choices preserved in dotfiles/install/macos.
+        com.apple.swipescrolldirection
+        AppleKeyboardUIMode
+        AppleSpacesSwitchOnActivate
+        CGDisableCursorLocationMagnification
+        NSNavPanelFileListModeForOpenMode2
+        NSNavPanelFileListModeForSaveMode2
+        AppleIconAppearanceTheme
+        NSUserDictionaryReplacementItems
+
+        // Inferred: dark appearance accompanies the chosen dark icons.
+        AppleInterfaceStyle
+    }
+
+    NSGlobalDomain host="current" {
+        // Inferred: the stored tap-to-click companion to Clicking below.
+        com.apple.mouse.tapBehavior
+
+        // Inferred from the G915 modifier-swap notes and two stored Logitech maps.
+        // These exact device identifiers matter; this is not a generic remap.
+        // The separate hidutil MENU-to-CTRL LaunchAgent remains in dotfiles.
+        com.apple.keyboard.modifiermapping.1133-45908-0
+        com.apple.keyboard.modifiermapping.1133-49982-0
+    }
+
+    com {
+        apple {
+            dock {
+                // Dock behavior and hot corners from dotfiles/install/macos.
+                autohide
+                orientation
+                tilesize
+                magnification
+                largesize
+                mineffect
+                show-recents
+                minimize-to-application
+                wvous-bl-corner
+                wvous-bl-modifier
+                wvous-br-corner
+                wvous-br-modifier
+
+                // Inferred: keep pinned applications and folders, including order.
+                persistent-apps
+                persistent-others
+            }
+
+            AppleMultitouchTrackpad {
+                Clicking
+            }
+
+            driver {
+                AppleBluetoothMultitouch {
+                    trackpad {
+                        // Stored on the source Mac in this scope.
+                        Clicking
+                    }
+                    trackpad host="current" {
+                        // Explicitly targeted by dotfiles; absent in the saved
+                        // host snapshot. Capture omits it if still not stored.
+                        Clicking
+                    }
+                }
+            }
+
+            WindowManager {
+                GloballyEnabled
+                EnableTilingByEdgeDrag
+                EnableTopTilingByEdgeDrag
+                EnableTilingOptionAccelerator
+                HideDesktop
+
+                // Inferred: keep the remaining stored tiling presentation choice.
+                EnableTiledWindowMargins
+            }
+
+            finder {
+                AppleShowAllFiles
+
+                // Inferred: preferred view, search scope, and new-window target.
+                FXPreferredViewStyle
+                FXLastSearchScope
+                NewWindowTarget
+                NewWindowTargetPath
+            }
+
+            menuextra {
+                clock {
+                    IsAnalog
+                    ShowDayOfWeek
+
+                    // Inferred: date visibility belongs with the chosen clock style.
+                    ShowDate
+                }
+            }
+
+            controlcenter host="current" {
+                Battery
+                Bluetooth
+                Sound
+            }
+
+            Spotlight host="current" {
+                MenuItemHidden
+            }
+
+            Spotlight {
+                // Inferred: saved category choices exclude movies and music.
+                orderedItems
+                EnabledPreferenceRules
+                DisabledUTTypes
+            }
+
+            symbolichotkeys {
+                // Inferred: preserve stored shortcut choices as one collection.
+                AppleSymbolicHotKeys
+            }
+
+            screencapture {
+                location
+                location-screenshot
+                location-screenrecording
+                type
+                show-thumbnail
+                showsClicks
+            }
+
+            loginwindow {
+                TALLogoutSavesState
+            }
+
+            screensaver host="current" {
+                // Inferred: screen-saver timing accompanies the Lock Screen choices.
+                idleTime
+            }
+
+            Terminal {
+                // Terminal was explicitly requested; dotfiles also keep profiles.
+                // Capture current profiles and defaults, including the selected Pro.
+                // This does not import the separate Protip.terminal file.
+                "Default Window Settings"
+                "Startup Window Settings"
+                "Window Settings"
+            }
+        }
+    }
+}
+
+pmset {
+    // The missing battery display timeout motivated this project.
+    // Keep display and system sleep separate for each power source.
+    battery {
+        displaysleep
+        sleep
+    }
+    charger {
+        displaysleep
+        sleep
+    }
+}
