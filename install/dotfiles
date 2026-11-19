@@ -127,7 +127,7 @@ cmd_pull() {
     untracked=("${(@0)$(git -C "$DOTFILES_DIR" ls-files --others --exclude-standard -z)}")
     untracked=(${untracked:#})
     if (( ${#untracked} )); then
-      aside="$(mktemp -d -t dotfiles-pull)"
+      aside="$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-pull.XXXXXX")"
       for f in $untracked; do
         mkdir -p "$aside/${f:h}" && mv "$DOTFILES_DIR/$f" "$aside/$f"
       done
